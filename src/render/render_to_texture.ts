@@ -13,12 +13,13 @@ import {ImageSource} from '../source/image_source';
 /**
  * lookup table which layers should rendered to texture
  */
-const LAYERS_TO_TEXTURES: { [keyof in StyleLayer['type']]?: boolean } = {
+const LAYERS_TO_TEXTURES: { [key: string]: boolean | undefined } = {
     background: true,
     fill: true,
     line: true,
     raster: true,
     hillshade: true,
+    'point-hillshade': true,
     'color-relief': true
 };
 

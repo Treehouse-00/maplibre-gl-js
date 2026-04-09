@@ -25,6 +25,7 @@ import {drawLine} from './draw_line';
 import {drawFill} from './draw_fill';
 import {drawFillExtrusion} from './draw_fill_extrusion';
 import {drawHillshade} from './draw_hillshade';
+import {drawPointHillshade} from './draw_point_hillshade';
 import {drawColorRelief} from './draw_color_relief';
 import {drawRaster} from './draw_raster';
 import {drawBackground} from './draw_background';
@@ -57,6 +58,7 @@ import {isLineStyleLayer} from '../style/style_layer/line_style_layer';
 import {isFillStyleLayer} from '../style/style_layer/fill_style_layer';
 import {isFillExtrusionStyleLayer} from '../style/style_layer/fill_extrusion_style_layer';
 import {isHillshadeStyleLayer} from '../style/style_layer/hillshade_style_layer';
+import {isPointHillshadeStyleLayer} from '../style/style_layer/point_hillshade_style_layer';
 import {isColorReliefStyleLayer} from '../style/style_layer/color_relief_style_layer';
 import {isRasterStyleLayer} from '../style/style_layer/raster_style_layer';
 import {isBackgroundStyleLayer} from '../style/style_layer/background_style_layer';
@@ -674,6 +676,8 @@ export class Painter {
             drawFillExtrusion(painter, tileManager, layer, coords, renderOptions);
         } else if (isHillshadeStyleLayer(layer)) {
             drawHillshade(painter, tileManager, layer, coords, renderOptions);
+        } else if (isPointHillshadeStyleLayer(layer)) {
+            drawPointHillshade(painter, tileManager, layer, coords, renderOptions);
         } else if (isColorReliefStyleLayer(layer)) {
             drawColorRelief(painter, tileManager, layer, coords, renderOptions);
         } else if (isRasterStyleLayer(layer)) {

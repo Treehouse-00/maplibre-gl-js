@@ -39,6 +39,10 @@ import hillshadePrepareFrag from './hillshade_prepare.fragment.glsl.g';
 import hillshadePrepareVert from './hillshade_prepare.vertex.glsl.g';
 import hillshadeFrag from './hillshade.fragment.glsl.g';
 import hillshadeVert from './hillshade.vertex.glsl.g';
+import pointHillshadeFrag from './point_hillshade.fragment.glsl.g';
+import pointHillshadeVert from './point_hillshade.vertex.glsl.g';
+import pointHillshadeSurfaceFrag from './point_hillshade_surface.fragment.glsl.g';
+import pointHillshadeViewshedPrepareFrag from './point_hillshade_viewshed_prepare.fragment.glsl.g';
 import lineFrag from './line.fragment.glsl.g';
 import lineVert from './line.vertex.glsl.g';
 import lineGradientFrag from './line_gradient.fragment.glsl.g';
@@ -102,6 +106,9 @@ export const shaders = {
     fillExtrusionPattern: prepare(fillExtrusionPatternFrag, fillExtrusionPatternVert),
     hillshadePrepare: prepare(hillshadePrepareFrag, hillshadePrepareVert),
     hillshade: prepare(hillshadeFrag, hillshadeVert),
+    pointHillshade: prepare(pointHillshadeFrag, pointHillshadeVert),
+    pointHillshadeSurface: prepare(pointHillshadeSurfaceFrag, pointHillshadeVert),
+    pointHillshadeViewshedPrepare: prepare(pointHillshadeViewshedPrepareFrag, hillshadePrepareVert),
     line: prepare(lineFrag, lineVert),
     lineGradient: prepare(lineGradientFrag, lineGradientVert),
     linePattern: prepare(linePatternFrag, linePatternVert),
