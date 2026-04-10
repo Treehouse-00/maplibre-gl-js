@@ -44,22 +44,12 @@ void main() {
     float diffuse;
     float coverageAlpha = 1.0;
 
-    if (u_lightCount > 0) {
-        // Network coverage mode: read pre-composited coverage texture
-        vec4 cov = texture(u_coverageTex, v_pos);
-        if (cov.a < 0.001) discard;
-        lightColor    = cov.rgb / cov.a;
-        coverageAlpha = cov.a;
-        lightCenter   = v_pos;          // light "everywhere" — skip directional
-        falloffRadius = 999.0;          // no radial falloff
-        diffuse       = u_diffuse;
-    } else {
-        // Single-light mode: use paint property uniforms
-        lightCenter   = u_lightCenter;
-        lightColor    = u_lightColor;
-        falloffRadius = u_falloffRadius;
-        diffuse       = u_diffuse;
-    }
+    // Both single-light (selected node) and multi-light (coverage)
+    // use per-light uniforms set by the draw pass.
+    lightCenter   = u_lightCenter;
+    lightColor    = u_lightColor;
+    falloffRadius = u_falloffRadius;
+    diffuse       = u_diffuse;
 
     // ── Point light geometry ─────────────────────────────────────────
     vec2 toLight = lightCenter - v_pos;
@@ -75,7 +65,8 @@ void main() {
     float NdotL = max(dot(N, L), 0.0);
     float shade = smoothstep(0.0, 0.45, NdotL);
 
-    // ── Near-field occlusion: 5 probes toward the light ────────────
+    // ── Terrain occlusion probes toward the light ─────────────────
+    // Near-field (5 probes): detect local ridges and slopes.
     vec2 d1 = sampleDeriv(v_pos + ld * 0.004);
     vec2 d2 = sampleDeriv(v_pos + ld * 0.010);
     vec2 d3 = sampleDeriv(v_pos + ld * 0.025);
@@ -88,6 +79,12 @@ void main() {
                  + max(dot(d4, ld), 0.0) * 0.4
                  + max(dot(d5, ld), 0.0) * 0.2;
 
+    // Mid-range probes: detect larger terrain features at 15–40 km scale.
+    vec2 d6 = sampleDeriv(v_pos + ld * 0.15);
+    vec2 d7 = sampleDeriv(v_pos + ld * 0.25);
+    dirOcc += max(dot(d6, ld), 0.0) * 0.35
+            + max(dot(d7, ld), 0.0) * 0.25;
+
     float steepness = (length(d1) + length(d2) + length(d3)
                      + length(d4) + length(d5)) * 0.2;
     float heightBlock = smoothstep(0.3, 1.5, steepness);
@@ -95,22 +92,17 @@ void main() {
     float occ = (1.0 - smoothstep(0.0, 1.0, dirOcc))
               * (1.0 - heightBlock * 0.6);
 
-    // ── Compositing ─────────────────────────────────────────────────
+    // ── Compositing (shared by selected-node and coverage) ──────────
     float highlight = shade * slopeStrength * occ * diffuse;
     float accent    = accentStrength * occ * 0.35;
     float glow      = NdotL * occ * 0.18;
     float raw       = (highlight + accent + glow) * atten;
 
     float slopeAlpha = slopeStrength * 0.55 + glow * 0.6;
-    float alpha = min(slopeAlpha * atten + 0.02, 0.60);
-
-    // Scale by coverage alpha in network mode
-    if (u_lightCount > 0) {
-        raw   *= coverageAlpha;
-        alpha *= coverageAlpha;
-    }
+    float alpha = min((slopeAlpha + u_ambient * 0.11) * atten, 0.60);
 
     fragColor = vec4(lightColor * raw, alpha);
+    if (fragColor.a < 0.004) discard;
 
 #ifdef OVERDRAW_INSPECTOR
     fragColor = vec4(1.0);

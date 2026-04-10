@@ -26,44 +26,49 @@ void main() {
     float coverageAlpha = 1.0;
 
     if (u_lightCount > 0) {
-        // Network coverage mode: read pre-composited coverage texture
-        vec4 cov = texture(u_coverageTex, v_pos);
-        if (cov.a < 0.001) discard;
-        lightColor    = cov.rgb / cov.a;
-        coverageAlpha = cov.a;
-        lightCenter   = v_pos;
-        falloffRadius = 999.0;
-        diffuse       = u_diffuse;
-    } else {
-        // Single-light mode: use paint property uniforms
+        // Coverage surface: same as single-light, GL_MAX composited.
         lightCenter   = u_lightCenter;
         lightColor    = u_lightColor;
         falloffRadius = u_falloffRadius;
         diffuse       = u_diffuse;
+
+        vec2 toLight = lightCenter - v_pos;
+        float dist2D = length(toLight);
+        float t2   = clamp(dist2D / falloffRadius, 0.0, 1.0);
+        float att2 = (1.0 - t2) * (1.0 - t2);
+        vec2 dv = (texture(u_image, v_pos).rg * 8.0 - 4.0) * u_exaggeration * 2.0;
+        vec3 Ns = normalize(vec3(-dv.x, -dv.y, 1.0));
+        vec3 Ls = normalize(vec3(toLight, u_lightHeight));
+        float nl = max(dot(Ns, Ls), 0.0);
+        nl = nl * nl * nl;
+        float si = nl * diffuse * att2;
+        float sa = si * u_surfaceOpacity;
+        fragColor = vec4(lightColor * si, sa);
+        if (sa < 0.008) discard;
+    } else {
+        // Single-light mode: full terrain surface computation
+        lightCenter   = u_lightCenter;
+        lightColor    = u_lightColor;
+        falloffRadius = u_falloffRadius;
+        diffuse       = u_diffuse;
+
+        vec2 toLight = lightCenter - v_pos;
+        float dist2D = length(toLight);
+
+        float t    = clamp(dist2D / falloffRadius, 0.0, 1.0);
+        float atten = (1.0 - t) * (1.0 - t);
+
+        vec2 deriv = (texture(u_image, v_pos).rg * 8.0 - 4.0) * u_exaggeration * 2.0;
+        vec3 N = normalize(vec3(-deriv.x, -deriv.y, 1.0));
+        vec3 L = normalize(vec3(toLight, u_lightHeight));
+        float NdotL = max(dot(N, L), 0.0);
+        NdotL = NdotL * NdotL * NdotL;
+
+        float intensity = NdotL * diffuse * atten;
+        float alpha     = intensity * u_surfaceOpacity;
+        fragColor = vec4(lightColor * intensity, alpha);
+        if (fragColor.a < 0.008) discard;
     }
-
-    vec2 toLight = lightCenter - v_pos;
-    float dist2D = length(toLight);
-
-    float t    = clamp(dist2D / falloffRadius, 0.0, 1.0);
-    float atten = (1.0 - t) * (1.0 - t);
-
-    vec2 deriv = (texture(u_image, v_pos).rg * 8.0 - 4.0) * u_exaggeration * 2.0;
-    vec3 N = normalize(vec3(-deriv.x, -deriv.y, 1.0));
-    vec3 L = normalize(vec3(toLight, u_lightHeight));
-    float NdotL = max(dot(N, L), 0.0);
-    NdotL = NdotL * NdotL * NdotL;
-
-    float intensity = NdotL * diffuse * atten;
-    float alpha     = intensity * u_surfaceOpacity;
-
-    // Scale by coverage alpha in network mode
-    if (u_lightCount > 0) {
-        intensity *= coverageAlpha;
-        alpha     *= coverageAlpha;
-    }
-
-    fragColor = vec4(lightColor * intensity, alpha);
 
 #ifdef OVERDRAW_INSPECTOR
     fragColor = vec4(1.0);
