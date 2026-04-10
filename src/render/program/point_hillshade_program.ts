@@ -56,6 +56,7 @@ const pointHillshadeUniformValues = (
     painter: Painter,
     tile: Tile,
     layer: PointHillshadeStyleLayer,
+    lightCount = 0,
 ): UniformValues<PointHillshadeUniformsType> => {
     const center = layer.paint.get('point-hillshade-center');
     const color = layer.paint.get('point-hillshade-color');
@@ -96,7 +97,7 @@ const pointHillshadeUniformValues = (
         'u_diffuse': diffuse,
         'u_ambient': 0.18,
         'u_coverageTex': 1,
-        'u_lightCount': 0,
+        'u_lightCount': lightCount,
     };
 };
 
