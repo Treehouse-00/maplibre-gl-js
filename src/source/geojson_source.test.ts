@@ -94,7 +94,7 @@ describe('GeoJSONSource.constructor', () => {
 
 describe('GeoJSONSource.setData', () => {
     function createSource(opts?) {
-        opts = opts || {};
+        opts ||= {};
         opts = extend(opts, {data: {}});
         return new GeoJSONSource('id', opts, wrapDispatcher({
             sendAsync(_message) {
@@ -625,7 +625,8 @@ describe('GeoJSONSource.update', () => {
         source.load();
 
         const err = await promise;
-        expect(err.error).toBe('error');
+        expect(err.error).toBeInstanceOf(Error);
+        expect(err.error.message).toBe('error');
     });
 
     test('sends loadData request to dispatcher after data update', async () => {

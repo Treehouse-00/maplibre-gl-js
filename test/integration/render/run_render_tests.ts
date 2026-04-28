@@ -10,6 +10,7 @@ import {CoverageReport} from 'monocart-coverage-reports';
 import junitReportBuilder, {type TestSuite} from 'junit-report-builder';
 import type {Page, Browser} from 'puppeteer';
 
+import {ensureError} from '../../../src/util/util';
 import {localizeURLs} from '../lib/localize-urls';
 import {launchPuppeteer} from '../lib/puppeteer_config';
 import type {default as MapLibreGL, Map as MaplibreMap, CanvasSource, PointLike, StyleSpecification} from '../../../dist/maplibre-gl';
@@ -168,9 +169,7 @@ function compareRenderResults(directory: string, testData: TestData, data: Uint8
         const expectedBuf = fs.readFileSync(path);
         const expectedImg = PNG.sync.read(expectedBuf);
         const diffImg = new PNG({width, height});
-        if (!testData.expected) {
-            testData.expected = expectedBuf.toString('base64'); // default expected image
-        }
+        testData.expected ||= expectedBuf.toString('base64'); // default expected image
 
         const diff = pixelmatch(
             actualImg.data, expectedImg.data, diffImg.data,
@@ -214,7 +213,7 @@ function getTestStyles(options: RenderOptions, directory: string, port: number):
         .map(fixture => {
             const id = path.dirname(fixture);
             const style = JSON.parse(fs.readFileSync(path.join(directory, fixture), 'utf8')) as StyleWithTestData;
-            style.metadata = style.metadata || {} as any;
+            style.metadata ||= {} as any;
 
             style.metadata.test = {
                 id,
@@ -888,7 +887,7 @@ function applyDebugParameter(options: RenderOptions, page: Page) {
             console.log(`${message.type().substring(0, 3).toUpperCase()} ${messages.filter(Boolean)}`);
         });
 
-        page.on('pageerror', ({message}) => { console.error(message); });
+        page.on('pageerror', (e) => { console.error(ensureError(e).message); });
 
         page.on('response', response => {
             console.log(`${response.status()} ${response.url()}`);
@@ -912,7 +911,7 @@ async function runTests(page: Page, testStyles: StyleWithTestData[], directory: 
             const data = await getImageFromStyle(style, page);
             compareRenderResults(directory, style.metadata.test, data);
         } catch (ex) {
-            style.metadata.test.error = ex;
+            style.metadata.test.error = ensureError(ex);
         }
         printProgress(style.metadata.test, testStyles.length, ++index);
     }

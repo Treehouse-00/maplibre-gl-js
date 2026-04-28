@@ -5,6 +5,7 @@ import {drawLine} from './draw_line';
 import {drawFill} from './draw_fill';
 import {drawFillExtrusion} from './draw_fill_extrusion';
 import {drawHillshade} from './draw_hillshade';
+import {drawPointHillshade} from './draw_point_hillshade';
 import {drawColorRelief} from './draw_color_relief';
 import {drawRaster} from './draw_raster';
 import {drawBackground} from './draw_background';
@@ -14,7 +15,7 @@ import {drawDepth, drawCoords} from './draw_terrain';
 import {drawSky, drawAtmosphere} from './draw_sky';
 
 export {drawSymbols, drawCircles, drawHeatmap, drawLine, drawFill, drawFillExtrusion,
-    drawHillshade, drawColorRelief, drawRaster, drawBackground,
+    drawHillshade, drawPointHillshade, drawColorRelief, drawRaster, drawBackground,
     drawDebug, drawDebugPadding, selectDebugSource, drawCustom,
     drawDepth, drawCoords, drawSky, drawAtmosphere};
 
@@ -26,6 +27,7 @@ export type DrawFunctions = {
     fill: typeof drawFill;
     fillExtrusion: typeof drawFillExtrusion;
     hillshade: typeof drawHillshade;
+    pointHillshade: typeof drawPointHillshade;
     colorRelief: typeof drawColorRelief;
     raster: typeof drawRaster;
     background: typeof drawBackground;
@@ -46,6 +48,7 @@ export const webglDrawFunctions: DrawFunctions = {
     fill: drawFill,
     fillExtrusion: drawFillExtrusion,
     hillshade: drawHillshade,
+    pointHillshade: drawPointHillshade,
     colorRelief: drawColorRelief,
     raster: drawRaster,
     background: drawBackground,

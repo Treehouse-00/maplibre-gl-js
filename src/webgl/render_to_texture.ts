@@ -13,12 +13,13 @@ import {ImageSource} from '../source/image_source';
 /**
  * lookup table which layers should rendered to texture
  */
-const LAYERS_TO_TEXTURES: { [keyof in StyleLayer['type']]?: boolean } = {
+const LAYERS_TO_TEXTURES: { [key: string]: boolean | undefined } = {
     background: true,
     fill: true,
     line: true,
     raster: true,
     hillshade: true,
+    'point-hillshade': true,
     'color-relief': true
 };
 
@@ -94,7 +95,7 @@ export class RenderToTexture {
             for (const tileID of tileIDs) {
                 const keys = this.terrain.tileManager.getTerrainCoords(tileID, terrainTileRanges);
                 for (const key in keys) {
-                    if (!this._coordsAscending[id][key]) this._coordsAscending[id][key] = [];
+                    this._coordsAscending[id][key] ||= [];
                     this._coordsAscending[id][key].push(keys[key]);
                 }
             }

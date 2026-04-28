@@ -27,11 +27,11 @@ const roundingFactor = 512 / EXTENT / 2;
 
 export const KDBUSH_THRESHHOLD = 128;
 
-interface SymbolsByKeyEntry {
+type SymbolsByKeyEntry = {
     index?: KDBush;
     positions?: Array<{x: number; y: number}>;
     crossTileIDs: number[];
-}
+};
 
 class TileLayerIndex {
     _symbolsByKey: Record<number, SymbolsByKeyEntry> = {};
@@ -237,9 +237,7 @@ class CrossTileSymbolLayerIndex {
             symbolInstance.crossTileID = 0;
         }
 
-        if (!this.usedCrossTileIDs[tileID.overscaledZ]) {
-            this.usedCrossTileIDs[tileID.overscaledZ] = {};
-        }
+        this.usedCrossTileIDs[tileID.overscaledZ] ||= {};
         const zoomCrossTileIDs = this.usedCrossTileIDs[tileID.overscaledZ];
 
         for (const zoom in this.indexes) {
@@ -333,7 +331,8 @@ export class CrossTileSymbolIndex {
                 continue;
 
             if (!symbolBucket.bucketInstanceId) {
-                symbolBucket.bucketInstanceId = ++this.maxBucketInstanceId;
+                this.maxBucketInstanceId += 1;
+                symbolBucket.bucketInstanceId = this.maxBucketInstanceId;
             }
 
             if (layerIndex.addBucket(tile.tileID, symbolBucket, this.crossTileIDs)) {

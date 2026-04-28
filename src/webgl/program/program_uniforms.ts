@@ -5,6 +5,9 @@ import {collisionUniforms, collisionCircleUniforms} from './collision_program';
 import {debugUniforms} from './debug_program';
 import {heatmapUniforms, heatmapTextureUniforms} from './heatmap_program';
 import {hillshadeUniforms, hillshadePrepareUniforms} from './hillshade_program';
+import {pointHillshadeUniforms} from './point_hillshade_program';
+import {pointHillshadeSurfaceUniforms} from './point_hillshade_surface_program';
+import {pointHillshadeViewshedPrepareUniforms} from './point_hillshade_viewshed_prepare_program';
 import {colorReliefUniforms} from './color_relief_program';
 import {lineUniforms, lineGradientUniforms, linePatternUniforms, lineSDFUniforms, lineGradientSDFUniforms} from './line_program';
 import {rasterUniforms} from './raster_program';
@@ -34,6 +37,9 @@ export const programUniforms = {
     heatmapTexture: heatmapTextureUniforms,
     hillshade: hillshadeUniforms,
     hillshadePrepare: hillshadePrepareUniforms,
+    pointHillshade: pointHillshadeUniforms,
+    pointHillshadeSurface: pointHillshadeSurfaceUniforms,
+    pointHillshadeViewshedPrepare: pointHillshadeViewshedPrepareUniforms,
     colorRelief: colorReliefUniforms,
     line: lineUniforms,
     lineGradient: lineGradientUniforms,
