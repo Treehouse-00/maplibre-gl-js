@@ -9,12 +9,12 @@ import type {EvaluationParameters} from '../evaluation_parameters';
 
 // ── Multi-light coverage descriptor ──────────────────────────────────
 
-export interface CoverageLight {
+export type CoverageLight = {
     center: [number, number];           // [lng, lat]
     color: [number, number, number];    // GL-ready RGB [0,1]
     falloffMeters: number;
     intensity: number;
-}
+};
 
 export const isPointHillshadeStyleLayer = (layer: StyleLayer): layer is PointHillshadeStyleLayer => (layer.type as string) === 'point-hillshade';
 

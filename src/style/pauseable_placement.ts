@@ -14,7 +14,7 @@ class LayerPlacement {
     _seenCrossTileIDs: {
         [k in string | number]: boolean;
     };
-    _bucketParts: Array<BucketPart>;
+    _bucketParts: BucketPart[];
 
     constructor(styleLayer: SymbolStyleLayer) {
         this._sortAcrossTiles = styleLayer.layout.get('symbol-z-order') !== 'viewport-y' &&
@@ -26,7 +26,7 @@ class LayerPlacement {
         this._bucketParts = [];
     }
 
-    continuePlacement(tiles: Array<Tile>, placement: Placement, showCollisionBoxes: boolean, styleLayer: StyleLayer, shouldPausePlacement: () => boolean) {
+    continuePlacement(tiles: Tile[], placement: Placement, showCollisionBoxes: boolean, styleLayer: StyleLayer, shouldPausePlacement: () => boolean) {
 
         const bucketParts = this._bucketParts;
 
@@ -69,7 +69,7 @@ export class PauseablePlacement {
     constructor(
         transform: ITransform,
         terrain: Terrain,
-        order: Array<string>,
+        order: string[],
         forceFullPlacement: boolean,
         showCollisionBoxes: boolean,
         fadeDuration: number,
@@ -88,9 +88,9 @@ export class PauseablePlacement {
     }
 
     continuePlacement(
-        order: Array<string>,
+        order: string[],
         layers: {[_: string]: StyleLayer},
-        layerTiles: {[_: string]: Array<Tile>}
+        layerTiles: {[_: string]: Tile[]}
     ) {
         const startTime = now();
 
@@ -107,9 +107,7 @@ export class PauseablePlacement {
                 (!layer.minzoom || layer.minzoom <= placementZoom) &&
                 (!layer.maxzoom || layer.maxzoom > placementZoom)) {
 
-                if (!this._inProgressLayer) {
-                    this._inProgressLayer = new LayerPlacement(layer);
-                }
+                this._inProgressLayer ||= new LayerPlacement(layer);
 
                 const pausePlacement = this._inProgressLayer.continuePlacement(layerTiles[layer.source], this.placement, this._showCollisionBoxes, layer, shouldPausePlacement);
 

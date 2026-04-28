@@ -61,7 +61,7 @@ export class FullscreenControl extends Evented implements IControl {
         this._fullscreen = false;
         this._pseudo = options.pseudo ?? false;
 
-        if (options && options.container) {
+        if (options?.container) {
             if (options.container instanceof HTMLElement) {
                 this._container = options.container;
             } else {
@@ -83,7 +83,7 @@ export class FullscreenControl extends Evented implements IControl {
     /** {@inheritDoc IControl.onAdd} */
     onAdd(map: Map): HTMLElement {
         this._map = map;
-        if (!this._container) this._container = this._map.getContainer();
+        this._container ||= this._map.getContainer();
         this._controlContainer = DOM.create('div', 'maplibregl-ctrl maplibregl-ctrl-group');
         this._setupUI();
         return this._controlContainer;

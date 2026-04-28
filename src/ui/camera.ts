@@ -786,7 +786,7 @@ export abstract class Camera extends Evented {
      */
     cameraForBounds(bounds: LngLatBoundsLike, options?: CameraForBoundsOptions): CenterZoomBearing | undefined {
         bounds = LngLatBounds.convert(bounds).adjustAntiMeridian();
-        const bearing = options && options.bearing || 0;
+        const bearing = options?.bearing || 0;
 
         return this._cameraForBoxAndBearing(bounds.getNorthWest(), bounds.getSouthEast(), bearing, options);
     }
@@ -1170,11 +1170,11 @@ export abstract class Camera extends Evented {
             center: options.center,
         });
 
-        this._rotating = this._rotating || (startBearing !== bearing);
-        this._pitching = this._pitching || (pitch !== startPitch);
-        this._rolling = this._rolling || (roll !== startRoll);
+        this._rotating ||= (startBearing !== bearing);
+        this._pitching ||= (pitch !== startPitch);
+        this._rolling ||= (roll !== startRoll);
         this._padding = !tr.isPaddingEqual(padding);
-        this._zooming = this._zooming || easeHandler.isZooming;
+        this._zooming ||= easeHandler.isZooming;
         this._easeId = options.easeId;
         this._prepareEase(eventData, options.noMoveStart, currently);
 
@@ -1261,9 +1261,7 @@ export abstract class Camera extends Evented {
     _getTransformForUpdate(): ITransform {
         if (!this.transformCameraUpdate && !this.terrain) return this.transform;
 
-        if (!this._requestedCameraState) {
-            this._requestedCameraState = this.transform.clone();
-        }
+        this._requestedCameraState ||= this.transform.clone();
         return this._requestedCameraState;
     }
 
@@ -1304,7 +1302,7 @@ export abstract class Camera extends Evented {
      * Call `transformCameraUpdate` if present, and then apply the "approved" changes.
      */
     _applyUpdatedTransform(tr: ITransform) {
-        const modifiers : ((tr: ITransform) => ReturnType<CameraUpdateTransformFunction>)[] = [];
+        const modifiers : Array<(tr: ITransform) => ReturnType<CameraUpdateTransformFunction>> = [];
         modifiers.push(tr => this._elevateCameraIfInsideTerrain(tr));
         if (this.transformCameraUpdate) {
             modifiers.push(tr => this.transformCameraUpdate(tr));
@@ -1554,7 +1552,7 @@ export abstract class Camera extends Evented {
         this._rotating = (startBearing !== bearing);
         this._pitching = (pitch !== startPitch);
         this._rolling = (roll !== startRoll);
-        this._padding = !tr.isPaddingEqual(padding as PaddingOptions);
+        this._padding = !tr.isPaddingEqual(padding);
 
         this._prepareEase(eventData, false);
         if (this.terrain) this._prepareElevation(flyToHandler.targetCenter);
@@ -1574,7 +1572,7 @@ export abstract class Camera extends Evented {
                 tr.setRoll(interpolates.number(startRoll, roll, k));
             }
             if (this._padding) {
-                tr.interpolatePadding(startPadding, padding as PaddingOptions, k);
+                tr.interpolatePadding(startPadding, padding, k);
                 // When padding is being applied, Transform.centerPoint is changing continuously,
                 // thus we need to recalculate offsetPoint every frame
                 pointAtOffset = tr.centerPoint.add(offsetAsPoint);

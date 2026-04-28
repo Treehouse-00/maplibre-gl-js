@@ -1,6 +1,6 @@
 import {Event, ErrorEvent, Evented} from '../util/evented';
 
-import {extend, pick} from '../util/util';
+import {ensureError, extend, pick} from '../util/util';
 import {loadTileJson} from './load_tilejson';
 import {TileBounds} from '../tile/tile_bounds';
 import {ResourceType} from '../util/request_manager';
@@ -78,7 +78,7 @@ export class VectorTileSource extends Evented implements Source {
     dispatcher: Dispatcher;
     map: Map;
     bounds: [number, number, number, number];
-    tiles: Array<string>;
+    tiles: string[];
     tileBounds: TileBounds;
     reparseOverscaled: boolean;
     isTileClipped: boolean;
@@ -135,7 +135,7 @@ export class VectorTileSource extends Evented implements Source {
 
             // only fire error event if it is not due to aborting the request
             if (!isAbortError(err)) {
-                this.fire(new ErrorEvent(err));
+                this.fire(new ErrorEvent(ensureError(err)));
             }
         }
     }
@@ -168,7 +168,7 @@ export class VectorTileSource extends Evented implements Source {
      *
      * @param tiles - An array of one or more tile source URLs, as in the TileJSON spec.
      */
-    setTiles(tiles: Array<string>): this {
+    setTiles(tiles: string[]): this {
         this.setSourceProperty(() => {
             this._options.tiles = tiles;
         });
