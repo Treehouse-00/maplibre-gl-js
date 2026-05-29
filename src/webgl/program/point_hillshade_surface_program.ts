@@ -3,15 +3,15 @@ import {
     Uniform1f,
     Uniform2f,
     Uniform3f,
-} from '../uniform_binding';
+} from '../uniform_binding.ts';
 
-import {MercatorCoordinate} from '../../geo/mercator_coordinate';
+import {MercatorCoordinate} from '../../geo/mercator_coordinate.ts';
 
-import type {Context} from '../../webgl/context';
-import type {UniformValues, UniformLocations} from '../uniform_binding';
-import type {Tile} from '../../tile/tile';
-import type {Painter} from '../../render/painter';
-import type {PointHillshadeStyleLayer} from '../../style/style_layer/point_hillshade_style_layer';
+import type {Context} from '../../webgl/context.ts';
+import type {UniformValues, UniformLocations} from '../uniform_binding.ts';
+import type {Tile} from '../../tile/tile.ts';
+import type {Painter} from '../../render/painter.ts';
+import type {PointHillshadeStyleLayer} from '../../style/style_layer/point_hillshade_style_layer.ts';
 
 export type PointHillshadeSurfaceUniformsType = {
     'u_image': Uniform1i;

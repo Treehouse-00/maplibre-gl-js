@@ -10,8 +10,8 @@
 // long distances for long segments. Use this value to unscale the distance.
 #define LINE_DISTANCE_SCALE 2.0
 
-in vec2 a_pos_normal;
-in vec4 a_data;
+layout(location = 0) in vec2 a_pos_normal;
+layout(location = 1) in vec4 a_data;
 
 uniform vec2 u_translation;
 uniform vec2 u_units_to_pixels;
@@ -19,10 +19,10 @@ uniform mediump float u_ratio;
 uniform lowp float u_device_pixel_ratio;
 
 out vec2 v_normal;
-out vec2 v_width2;
+flat out vec2 v_width2;
 out float v_linesofar;
 out float v_gamma_scale;
-out float v_width;
+flat out float v_width;
 #ifdef GLOBE
 out float v_depth;
 #endif

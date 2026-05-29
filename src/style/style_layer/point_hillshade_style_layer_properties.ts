@@ -9,7 +9,7 @@
 import {
     Properties,
     DataConstantProperty,
-} from '../properties';
+} from '../properties.ts';
 
 import type {Color} from '@maplibre/maplibre-gl-style-spec';
 import type {StylePropertySpecification} from '@maplibre/maplibre-gl-style-spec';
@@ -102,4 +102,4 @@ const getPaint = () => paint ||= new Properties({
     'point-hillshade-surface-opacity': new DataConstantProperty(specs['point-hillshade-surface-opacity']),
 });
 
-export default ({get paint() { return getPaint(); }});
+export default ({get paint(): Properties<PointHillshadePaintProps> { return getPaint(); }});

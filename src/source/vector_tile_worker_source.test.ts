@@ -2,16 +2,16 @@ import {describe, beforeEach, afterEach, test, expect, vi} from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import Protobuf from 'pbf';
-import {VectorTileWorkerSource} from '../source/vector_tile_worker_source';
-import {StyleLayerIndex} from '../style/style_layer_index';
+import {VectorTileWorkerSource} from '../source/vector_tile_worker_source.ts';
+import {StyleLayerIndex} from '../style/style_layer_index.ts';
 import {fakeServer, type FakeServer} from 'nise';
-import {type IActor} from '../util/actor';
-import {type TileParameters, type WorkerTileParameters, type WorkerTileResult, type WorkerTileWithData} from './worker_source';
-import {WorkerTile} from './worker_tile';
-import {setPerformance, sleep} from '../util/test/util';
-import {ABORT_ERROR} from '../util/abort_error';
-import {SubdivisionGranularitySetting} from '../render/subdivision_granularity_settings';
-import {OverscaledTileID, CanonicalTileID} from '../tile/tile_id';
+import {type IActor} from '../util/actor.ts';
+import {type TileParameters, type WorkerTileParameters, type WorkerTileResult, type WorkerTileWithData} from './worker_source.ts';
+import {WorkerTile} from './worker_tile.ts';
+import {setPerformance, sleep} from '../util/test/util.ts';
+import {ABORT_ERROR} from '../util/abort_error.ts';
+import {SubdivisionGranularitySetting} from '../render/subdivision_granularity_settings.ts';
+import {OverscaledTileID, CanonicalTileID} from '../tile/tile_id.ts';
 import {VectorTile} from '@mapbox/vector-tile';
 import Point from '@mapbox/point-geometry';
 
@@ -173,7 +173,8 @@ describe('vector tile worker source', () => {
         const loadVectorData = (_params, _rawData) => {
             return {
                 vectorTile: new VectorTile(new Protobuf(rawTileData)),
-                rawData: rawTileData
+                rawData: rawTileData,
+                encoding: 'mvt'
             };
         };
 
@@ -255,6 +256,42 @@ describe('vector tile worker source', () => {
         await promise;
 
         expect(getOverzoomTileSpy).toHaveBeenCalledWith(params, mockVectorTile);
+    });
+
+    test('VectorTileWorkerSource uses mvt encoding for overzoomed mlt tiles', async () => {
+        const source = new VectorTileWorkerSource(actor, new StyleLayerIndex(), []);
+        const mockVectorTile = {layers: {}} as any;
+
+        source.loadVectorTile = vi.fn().mockReturnValue({
+            vectorTile: mockVectorTile,
+            rawData: new ArrayBuffer(0)
+        });
+
+        vi.spyOn(source as any, '_getOverzoomTile').mockReturnValue({
+            vectorTile: mockVectorTile,
+            rawData: new ArrayBuffer(0)
+        });
+
+        server.respondWith(request => {
+            request.respond(200, {'Content-Type': 'application/pbf'}, new ArrayBuffer(0) as any);
+        });
+
+        const params = {
+            uid: '1',
+            tileID: new OverscaledTileID(16, 0, 16, 100, 100),
+            source: 'test',
+            encoding: 'mlt',
+            overzoomParameters: {
+                maxZoomTileID: new CanonicalTileID(14, 25, 25),
+                overzoomRequest: {url: ''}
+            }
+        } as WorkerTileParameters;
+
+        const promise = source.loadTile(params);
+        server.respond();
+        const res = await promise as WorkerTileWithData;
+
+        expect(res.encoding).toBe('mvt');
     });
 
     test('VectorTileWorkerSource.reloadTile does not reparse tiles with no vectorTile data but does call callback', async () => {
@@ -342,7 +379,8 @@ describe('vector tile worker source', () => {
                 vectorTile: new VectorTile(new Protobuf(rawTileData)),
                 rawData: rawTileData,
                 cacheControl: null,
-                expires: null
+                expires: null,
+                encoding: 'mvt'
             };
         };
 
@@ -405,7 +443,8 @@ describe('vector tile worker source', () => {
                 vectorTile: new VectorTile(new Protobuf(rawTileData)),
                 rawData: rawTileData,
                 cacheControl: null,
-                expires: null
+                expires: null,
+                encoding: 'mvt'
             };
         };
 

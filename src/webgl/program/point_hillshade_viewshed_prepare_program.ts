@@ -5,15 +5,15 @@ import {
     Uniform1f,
     Uniform2f,
     UniformMatrix4f,
-} from '../uniform_binding';
+} from '../uniform_binding.ts';
 
-import {EXTENT} from '../../data/extent';
-import {MercatorCoordinate} from '../../geo/mercator_coordinate';
+import {EXTENT} from '../../data/extent.ts';
+import {MercatorCoordinate} from '../../geo/mercator_coordinate.ts';
 
-import type {Context} from '../../webgl/context';
-import type {UniformValues, UniformLocations} from '../uniform_binding';
-import type {OverscaledTileID} from '../../tile/tile_id';
-import type {PointHillshadeStyleLayer} from '../../style/style_layer/point_hillshade_style_layer';
+import type {Context} from '../../webgl/context.ts';
+import type {UniformValues, UniformLocations} from '../uniform_binding.ts';
+import type {OverscaledTileID} from '../../tile/tile_id.ts';
+import type {PointHillshadeStyleLayer} from '../../style/style_layer/point_hillshade_style_layer.ts';
 
 export type PointHillshadeViewshedPrepareUniformsType = {
     'u_matrix': UniformMatrix4f;

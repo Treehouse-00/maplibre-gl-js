@@ -1,23 +1,23 @@
-import {DepthMode} from '../depth_mode';
-import {CullFaceMode} from '../cull_face_mode';
-import {ColorMode} from '../color_mode';
-import {type StencilMode} from '../stencil_mode';
+import {DepthMode} from '../depth_mode.ts';
+import {CullFaceMode} from '../cull_face_mode.ts';
+import {ColorMode} from '../color_mode.ts';
+import {type StencilMode} from '../stencil_mode.ts';
 import {
     pointHillshadeUniformValues
-} from '../program/point_hillshade_program';
+} from '../program/point_hillshade_program.ts';
 import {
     pointHillshadeSurfaceUniformValues
-} from '../program/point_hillshade_surface_program';
-import {MercatorCoordinate} from '../../geo/mercator_coordinate';
+} from '../program/point_hillshade_surface_program.ts';
+import {MercatorCoordinate} from '../../geo/mercator_coordinate.ts';
 import {Color} from '@maplibre/maplibre-gl-style-spec';
 
-import type {Painter, RenderOptions} from '../../render/painter';
-import type {TileManager} from '../../tile/tile_manager';
-import type {PointHillshadeStyleLayer, CoverageLight} from '../../style/style_layer/point_hillshade_style_layer';
-import type {OverscaledTileID} from '../../tile/tile_id';
-import type {UniformValues} from '../uniform_binding';
-import type {PointHillshadeUniformsType} from '../program/point_hillshade_program';
-import type {PointHillshadeSurfaceUniformsType} from '../program/point_hillshade_surface_program';
+import type {Painter, RenderOptions} from '../../render/painter.ts';
+import type {TileManager} from '../../tile/tile_manager.ts';
+import type {PointHillshadeStyleLayer, CoverageLight} from '../../style/style_layer/point_hillshade_style_layer.ts';
+import type {OverscaledTileID} from '../../tile/tile_id.ts';
+import type {UniformValues} from '../uniform_binding.ts';
+import type {PointHillshadeUniformsType} from '../program/point_hillshade_program.ts';
+import type {PointHillshadeSurfaceUniformsType} from '../program/point_hillshade_surface_program.ts';
 
 // ── Multi-light coverage rendering ─────────────────────────────────
 //
@@ -233,7 +233,7 @@ function drawCoverageMultiLight(
         gl.bindTexture(gl.TEXTURE_2D, tile.fbo.colorAttachment.get());
 
         // Set GL_MAX blend equation: Lighter Color selection
-        (gl as WebGL2RenderingContext).blendEquation((gl as WebGL2RenderingContext).MAX);
+        gl.blendEquation(gl.MAX);
 
         for (const pl of tileLights) {
             // Surface glow
@@ -253,13 +253,13 @@ function drawCoverageMultiLight(
         }
 
         // Restore default blend equation
-        (gl as WebGL2RenderingContext).blendEquation(gl.FUNC_ADD);
+        gl.blendEquation(gl.FUNC_ADD);
     }
 }
 
 // ── Main draw entry ────────────────────────────────────────────
 
-export function drawPointHillshade(painter: Painter, tileManager: TileManager, layer: PointHillshadeStyleLayer, tileIDs: OverscaledTileID[], renderOptions: RenderOptions) {
+export function drawPointHillshade(painter: Painter, tileManager: TileManager, layer: PointHillshadeStyleLayer, tileIDs: OverscaledTileID[], renderOptions: RenderOptions): void {
     if (painter.renderPass !== 'translucent') return;
     if (!tileIDs.length) return;
 

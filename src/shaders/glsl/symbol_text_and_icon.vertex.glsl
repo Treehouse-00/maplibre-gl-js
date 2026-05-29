@@ -1,7 +1,7 @@
-in vec4 a_pos_offset;
-in vec4 a_data;
-in vec3 a_projected_pos;
-in float a_fade_opacity;
+layout(location = 0) in vec4 a_pos_offset;
+layout(location = 1) in vec4 a_data;
+layout(location = 2) in vec3 a_projected_pos;
+layout(location = 3) in float a_fade_opacity;
 
 // contents of a_size vary based on the type of property value
 // used for {text,icon}-size.
@@ -31,7 +31,8 @@ uniform vec2 u_translation;
 uniform float u_pitched_scale;
 
 out vec4 v_data0;
-out vec4 v_data1;
+out vec3 v_data1;
+flat out float v_is_sdf;
 
 #pragma mapbox: define highp vec4 fill_color
 #pragma mapbox: define highp vec4 halo_color
@@ -143,5 +144,6 @@ void main() {
 
     v_data0.xy = a_tex / u_texsize;
     v_data0.zw = a_tex / u_texsize_icon;
-    v_data1 = vec4(gamma_scale, size, total_opacity, is_sdf);
+    v_data1 = vec3(gamma_scale, size, total_opacity);
+    v_is_sdf = is_sdf;
 }

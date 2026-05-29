@@ -1,7 +1,8 @@
 uniform lowp float u_device_pixel_ratio;
 uniform sampler2D u_image;
+uniform bool u_opacity_override;
 
-in vec2 v_width2;
+flat in vec2 v_width2;
 in vec2 v_normal;
 in float v_gamma_scale;
 in highp vec2 v_uv;
@@ -29,7 +30,8 @@ void main() {
     // entire line, the gradient ramp is stored in a texture.
     vec4 color = texture(u_image, v_uv);
 
-    fragColor = color * (alpha * opacity);
+    float finalOpacity = u_opacity_override ? 1.0 : opacity;
+    fragColor = color * (alpha * finalOpacity);
 
     #ifdef GLOBE
     if (v_depth > 1.0) {

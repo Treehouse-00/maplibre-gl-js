@@ -1,9 +1,10 @@
-import {describe, beforeEach, test, expect, vi} from 'vitest';
-import {Painter} from './painter';
-import {MercatorTransform} from '../geo/projection/mercator_transform';
-import {Style} from '../style/style';
-import {StubMap} from '../util/test/util';
-import {Texture} from '../webgl/texture';
+import {describe, beforeEach, test, expect, vi, afterEach} from 'vitest';
+import {Painter} from './painter.ts';
+import {MercatorTransform} from '../geo/projection/mercator_transform.ts';
+import {Style} from '../style/style.ts';
+import {StubMap} from '../util/test/util.ts';
+import {Texture} from '../webgl/texture.ts';
+import {createNullGL} from '../util/test/null_gl.ts';
 
 describe('render', () => {
     let painter: Painter;
@@ -21,7 +22,7 @@ describe('render', () => {
     };
 
     beforeEach(() => {
-        const gl = document.createElement('canvas').getContext('webgl');
+        const gl = createNullGL();
         const transform = new MercatorTransform({minZoom: 0, maxZoom: 22, minPitch: 0, maxPitch: 60, renderWorldCopies: true});
         transform.resize(512, 512);
         painter = new Painter(gl, transform);
@@ -49,7 +50,7 @@ describe('render', () => {
 
 describe('tile texture pool', () => {
     function createPainterWithPool() {
-        const gl = document.createElement('canvas').getContext('webgl');
+        const gl = createNullGL();
         const transform = new MercatorTransform({minZoom: 0, maxZoom: 22, minPitch: 0, maxPitch: 60, renderWorldCopies: true});
         return new Painter(gl, transform);
     }
@@ -79,5 +80,75 @@ describe('tile texture pool', () => {
         expect(destroyed).toBe(100);
 
         painter.destroy();
+    });
+});
+
+describe('RTT pool', () => {
+    let painter: Painter;
+
+    beforeEach(() => {
+        const gl = createNullGL();
+        const transform = new MercatorTransform({minZoom: 0, maxZoom: 22, minPitch: 0, maxPitch: 60, renderWorldCopies: true});
+        painter = new Painter(gl, transform);
+    });
+
+    afterEach(() => {
+        painter.destroy();
+    });
+
+    test('acquireRTT creates on miss, recycles on hit', () => {
+        const a = painter.acquireRTT(256);
+        expect(a.size).toBe(256);
+        expect(a.texture).toBeTruthy();
+
+        painter.releaseRTT(a);
+        expect(painter.acquireRTT(256)).toBe(a);
+    });
+
+    test('acquireRTT resizes pooled textures when sizes differ', () => {
+        const a = painter.acquireRTT(256);
+        const texture = a.texture;
+        painter.releaseRTT(a);
+
+        const b = painter.acquireRTT(512);
+        expect(b).toBe(a);
+        expect(b.size).toBe(512);
+        expect(b.texture).toBe(texture);
+        expect(b.texture.size).toEqual([512, 512]);
+    });
+
+    test('bindRTT lazily creates shared FBO and binds texture', () => {
+        expect(painter._rttSharedFbo).toBeNull();
+        const obj = painter.acquireRTT(256);
+        painter.bindRTT(obj);
+        expect(painter._rttSharedFbo).toBeTruthy();
+        expect(painter._rttSharedFbo.size).toBe(256);
+    });
+
+    test('bindRTT resizes shared depth-stencil when size changes', () => {
+        const a = painter.acquireRTT(256);
+        painter.bindRTT(a);
+        expect(painter._rttSharedFbo.size).toBe(256);
+
+        const b = painter.acquireRTT(512);
+        painter.bindRTT(b);
+        expect(painter._rttSharedFbo.size).toBe(512);
+    });
+
+    test('painter.destroy cleans up pooled RTT textures and shared FBO', () => {
+        const objs = [];
+        for (let i = 0; i < 10; i++) {
+            const obj = painter.acquireRTT(128);
+            vi.spyOn(obj.texture, 'destroy');
+            objs.push(obj);
+        }
+        // Bind one to force shared FBO creation
+        painter.bindRTT(objs[0]);
+        for (const obj of objs) painter.releaseRTT(obj);
+
+        painter.destroy();
+        const destroyed = objs.filter(o => o.texture.destroy.mock.calls.length > 0).length;
+        expect(destroyed).toBe(10);
+        expect(painter._rttSharedFbo).toBeNull();
     });
 });

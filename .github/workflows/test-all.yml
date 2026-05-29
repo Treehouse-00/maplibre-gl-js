@@ -32,11 +32,8 @@ jobs:
       - run: npm run typecheck
         if: '!cancelled()'
       - run: npm run generate-docs
-      - name: Build docs using docker and mkdocs-material
-        run: |
-          rm docs/README.md
-          rm -rf docs/API/_media
-          docker run --rm -v ${PWD}:/docs squidfunk/mkdocs-material build --strict
+      - name: Build docs
+        run: npm run docs
       - name: Check spelling
         # This need to run after the docs are built
         run: npm run spellcheck
@@ -89,7 +86,7 @@ jobs:
         if: '!cancelled()'
         with:
           name: build-dist-${{ matrix.os }}
-          path: dist/maplibre-gl.js
+          path: dist/
       - run: npm run test-integration-ci
       - name: Move files
         if: runner.os == 'Linux'
@@ -215,7 +212,7 @@ jobs:
           COVERAGE_FORMAT: "lcov"
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           files: ${{ github.workspace }}/coverage-merged/coverage-final.json
           verbose: true

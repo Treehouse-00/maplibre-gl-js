@@ -1,6 +1,7 @@
 uniform lowp float u_device_pixel_ratio;
+uniform bool u_opacity_override;
 
-in vec2 v_width2;
+flat in vec2 v_width2;
 in vec2 v_normal;
 in float v_gamma_scale;
 #ifdef GLOBE
@@ -25,7 +26,8 @@ void main() {
     float blur2 = (blur + 1.0 / u_device_pixel_ratio) * v_gamma_scale;
     float alpha = clamp(min(dist - (v_width2.t - blur2), v_width2.s - dist) / blur2, 0.0, 1.0);
 
-    fragColor = color * (alpha * opacity);
+    float finalOpacity = u_opacity_override ? 1.0 : opacity;
+    fragColor = color * (alpha * finalOpacity);
 
     #ifdef GLOBE
     if (v_depth > 1.0) {
