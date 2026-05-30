@@ -24,6 +24,7 @@ export type PointHillshadeSurfaceUniformsType = {
     'u_surfaceOpacity': Uniform1f;
     'u_coverageTex': Uniform1i;
     'u_lightCount': Uniform1i;
+    'u_lightTex': Uniform1i;
 };
 
 const pointHillshadeSurfaceUniforms = (context: Context, locations: UniformLocations): PointHillshadeSurfaceUniformsType => ({
@@ -37,6 +38,7 @@ const pointHillshadeSurfaceUniforms = (context: Context, locations: UniformLocat
     'u_surfaceOpacity': new Uniform1f(context, locations.u_surfaceOpacity),
     'u_coverageTex': new Uniform1i(context, locations.u_coverageTex),
     'u_lightCount': new Uniform1i(context, locations.u_lightCount),
+    'u_lightTex': new Uniform1i(context, locations.u_lightTex),
 });
 
 /** Light altitude: 3 m AGL — matches terrain pass. */
@@ -78,6 +80,9 @@ const pointHillshadeSurfaceUniformValues = (
         'u_surfaceOpacity': surfaceOpacity,
         'u_coverageTex': 1,
         'u_lightCount': lightCount,
+        // Single-light mode never samples u_lightTex; point it at the
+        // always-complete DEM unit (0) so the sampler stays valid.
+        'u_lightTex': 0,
     };
 };
 

@@ -27,6 +27,7 @@ export type PointHillshadeUniformsType = {
     'u_ambient': Uniform1f;
     'u_coverageTex': Uniform1i;
     'u_lightCount': Uniform1i;
+    'u_lightTex': Uniform1i;
 };
 
 const pointHillshadeUniforms = (context: Context, locations: UniformLocations): PointHillshadeUniformsType => ({
@@ -42,6 +43,7 @@ const pointHillshadeUniforms = (context: Context, locations: UniformLocations): 
     'u_ambient': new Uniform1f(context, locations.u_ambient),
     'u_coverageTex': new Uniform1i(context, locations.u_coverageTex),
     'u_lightCount': new Uniform1i(context, locations.u_lightCount),
+    'u_lightTex': new Uniform1i(context, locations.u_lightTex),
 });
 
 /** Light altitude: 3 m AGL — low point source just above the antenna. */
@@ -98,6 +100,9 @@ const pointHillshadeUniformValues = (
         'u_ambient': 0.18,
         'u_coverageTex': 1,
         'u_lightCount': lightCount,
+        // Single-light mode never samples u_lightTex; point it at the
+        // always-complete DEM unit (0) so the sampler stays valid.
+        'u_lightTex': 0,
     };
 };
 
