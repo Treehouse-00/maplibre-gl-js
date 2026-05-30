@@ -37060,7 +37060,7 @@ var hillshade_fragment_glsl_g_default = "uniform sampler2D u_image;in vec2 v_pos
 var hillshade_vertex_glsl_g_default = "uniform mat4 u_matrix;layout(location=0) in vec2 a_pos;out vec2 v_pos;void main() {gl_Position=projectTile(a_pos,a_pos);v_pos=a_pos/8192.0;if (a_pos.y <-32767.5) {v_pos.y=0.0;}if (a_pos.y > 32766.5) {v_pos.y=1.0;}}";
 //#endregion
 //#region src/shaders/glsl/point_hillshade.fragment.glsl.g.ts
-var point_hillshade_fragment_glsl_g_default = "uniform sampler2D u_image;in vec2 v_pos;uniform vec2 u_latrange;uniform float u_exaggeration;uniform vec2 u_lightCenter;uniform vec3 u_lightColor;uniform float u_falloffRadius;uniform float u_lightHeight;uniform float u_shadowHeight;uniform float u_diffuse;uniform float u_ambient;uniform sampler2D u_coverageTex;uniform int u_lightCount;\n#define PI 3.141592653589793\nvec2 sampleDeriv(vec2 pos) {return (texture(u_image,pos).rg*8.0-4.0)*u_exaggeration*2.0;}void main() {float scaleFactor=cos(radians((u_latrange[0]-u_latrange[1])*(1.0-v_pos.y)+u_latrange[1]));vec4 pixel=texture(u_image,v_pos);vec2 rawDeriv=((pixel.rg*8.0)-4.0)/scaleFactor;vec2 deriv=rawDeriv*u_exaggeration*2.0;float slope=atan(0.625*length(deriv));float slopeStrength=sin(slope);float accentStrength=1.0-cos(slope);vec3 N=normalize(vec3(-deriv.x,-deriv.y,1.0));vec2 lightCenter;vec3 lightColor;float falloffRadius;float diffuse;float coverageAlpha=1.0;lightCenter  =u_lightCenter;lightColor   =u_lightColor;falloffRadius=u_falloffRadius;diffuse      =u_diffuse;vec2 toLight=lightCenter-v_pos;float dist2D=length(toLight);vec2 ld=toLight/(dist2D+0.0001);float t=clamp(dist2D/falloffRadius,0.0,1.0);float atten=(1.0-t)*(1.0-t);vec3 L=normalize(vec3(toLight,u_lightHeight));float NdotL=max(dot(N,L),0.0);float shade=smoothstep(0.0,0.45,NdotL);vec2 d1=sampleDeriv(v_pos+ld*0.004);vec2 d2=sampleDeriv(v_pos+ld*0.010);vec2 d3=sampleDeriv(v_pos+ld*0.025);vec2 d4=sampleDeriv(v_pos+ld*0.050);vec2 d5=sampleDeriv(v_pos+ld*0.080);float dirOcc=max(dot(d1,ld),0.0)+max(dot(d2,ld),0.0)*0.8+max(dot(d3,ld),0.0)*0.6+max(dot(d4,ld),0.0)*0.4+max(dot(d5,ld),0.0)*0.2;vec2 d6=sampleDeriv(v_pos+ld*0.15);vec2 d7=sampleDeriv(v_pos+ld*0.25);dirOcc+=max(dot(d6,ld),0.0)*0.35+max(dot(d7,ld),0.0)*0.25;float steepness=(length(d1)+length(d2)+length(d3)+length(d4)+length(d5))*0.2;float heightBlock=smoothstep(0.3,1.5,steepness);float occ=(1.0-smoothstep(0.0,1.0,dirOcc))*(1.0-heightBlock*0.6);float highlight=shade*slopeStrength*occ*diffuse;float accent   =accentStrength*occ*0.35;float glow     =NdotL*occ*0.18;float raw      =(highlight+accent+glow)*atten;float slopeAlpha=slopeStrength*0.55+glow*0.6;float alpha=min((slopeAlpha+u_ambient*0.11)*atten,0.60);fragColor=vec4(lightColor*raw,alpha);if (fragColor.a < 0.004) discard;\n#ifdef OVERDRAW_INSPECTOR\nfragColor=vec4(1.0);\n#endif\n}";
+var point_hillshade_fragment_glsl_g_default = "uniform sampler2D u_image;in vec2 v_pos;uniform vec2 u_latrange;uniform float u_exaggeration;uniform vec2 u_lightCenter;uniform vec3 u_lightColor;uniform float u_falloffRadius;uniform float u_lightHeight;uniform float u_shadowHeight;uniform float u_diffuse;uniform float u_ambient;uniform sampler2D u_coverageTex;uniform int u_lightCount;uniform highp sampler2D u_lightTex;layout(std140) uniform LightGlobals {highp vec4 u_lg0;highp vec4 u_lg1;};\n#define PI 3.141592653589793\nvec2 sampleDeriv(vec2 pos,float exaggeration) {return (texture(u_image,pos).rg*8.0-4.0)*exaggeration*2.0;}vec4 coverageLight(highp vec2 lightCenter,vec3 lightColor,highp float falloffRadius,highp float lightHeight,float diffuse,float exaggeration,float ambient,vec3 N,float slopeStrength,float accentStrength\n) {vec2 toLight=lightCenter-v_pos;float dist2D=length(toLight);vec2 ld=toLight/(dist2D+0.0001);float t=clamp(dist2D/falloffRadius,0.0,1.0);float atten=(1.0-t)*(1.0-t);vec3 L=normalize(vec3(toLight,lightHeight));float NdotL=max(dot(N,L),0.0);float shade=smoothstep(0.0,0.45,NdotL);vec2 d1=sampleDeriv(v_pos+ld*0.004,exaggeration);vec2 d2=sampleDeriv(v_pos+ld*0.010,exaggeration);vec2 d3=sampleDeriv(v_pos+ld*0.025,exaggeration);vec2 d4=sampleDeriv(v_pos+ld*0.050,exaggeration);vec2 d5=sampleDeriv(v_pos+ld*0.080,exaggeration);float dirOcc=max(dot(d1,ld),0.0)+max(dot(d2,ld),0.0)*0.8+max(dot(d3,ld),0.0)*0.6+max(dot(d4,ld),0.0)*0.4+max(dot(d5,ld),0.0)*0.2;vec2 d6=sampleDeriv(v_pos+ld*0.15,exaggeration);vec2 d7=sampleDeriv(v_pos+ld*0.25,exaggeration);dirOcc+=max(dot(d6,ld),0.0)*0.35+max(dot(d7,ld),0.0)*0.25;float steepness=(length(d1)+length(d2)+length(d3)+length(d4)+length(d5))*0.2;float heightBlock=smoothstep(0.3,1.5,steepness);float occ=(1.0-smoothstep(0.0,1.0,dirOcc))*(1.0-heightBlock*0.6);float highlight=shade*slopeStrength*occ*diffuse;float accent   =accentStrength*occ*0.35;float glow     =NdotL*occ*0.18;float raw      =(highlight+accent+glow)*atten;float slopeAlpha=slopeStrength*0.55+glow*0.6;float alpha=min((slopeAlpha+ambient*0.11)*atten,0.60);return vec4(lightColor*raw,alpha);}void main() {bool multi=u_lightCount > 0;float exaggeration=multi ? u_lg0.w  : u_exaggeration;vec2  latrange    =multi ? u_lg1.xy : u_latrange;float ambient     =multi ? u_lg1.z  : u_ambient;float scaleFactor=cos(radians((latrange[0]-latrange[1])*(1.0-v_pos.y)+latrange[1]));vec4 pixel=texture(u_image,v_pos);vec2 rawDeriv=((pixel.rg*8.0)-4.0)/scaleFactor;vec2 deriv=rawDeriv*exaggeration*2.0;float slope=atan(0.625*length(deriv));float slopeStrength=sin(slope);float accentStrength=1.0-cos(slope);vec3 N=normalize(vec3(-deriv.x,-deriv.y,1.0));if (multi) {highp float tilesAtZoom=u_lg0.x;highp vec2  tileOrigin =u_lg0.yz;vec3 accumColor=vec3(0.0);float accumAlpha=0.0;for (int i=0; i < u_lightCount; i++) {highp vec4 a=texelFetch(u_lightTex,ivec2(i*2,0),0);vec4 b=texelFetch(u_lightTex,ivec2(i*2+1,0),0);highp vec2 lightCenter=a.xy*tilesAtZoom-tileOrigin;highp float falloffRadius=a.z*tilesAtZoom;highp float lightHeight=a.w*tilesAtZoom;vec4 c=coverageLight(lightCenter,b.rgb,falloffRadius,lightHeight,b.a,exaggeration,ambient,N,slopeStrength,accentStrength);accumColor=max(accumColor,c.rgb);accumAlpha=max(accumAlpha,c.a);}fragColor=vec4(accumColor,accumAlpha);} else {fragColor=coverageLight(u_lightCenter,u_lightColor,u_falloffRadius,u_lightHeight,u_diffuse,exaggeration,ambient,N,slopeStrength,accentStrength);}if (fragColor.a < 0.004) discard;\n#ifdef OVERDRAW_INSPECTOR\nfragColor=vec4(1.0);\n#endif\n}";
 //#endregion
 //#region src/shaders/glsl/point_hillshade.vertex.glsl.g.ts
 var point_hillshade_vertex_glsl_g_default = "uniform mat4 u_matrix;in vec2 a_pos;out vec2 v_pos;void main() {gl_Position=projectTile(a_pos,a_pos);v_pos=a_pos/8192.0;if (a_pos.y <-32767.5) {v_pos.y=0.0;}if (a_pos.y > 32766.5) {v_pos.y=1.0;}}";
@@ -37090,7 +37090,7 @@ const shaders = {
 	hillshadePrepare: prepare(hillshade_prepare_fragment_glsl_g_default, hillshade_prepare_vertex_glsl_g_default),
 	hillshade: prepare(hillshade_fragment_glsl_g_default, hillshade_vertex_glsl_g_default),
 	pointHillshade: prepare(point_hillshade_fragment_glsl_g_default, point_hillshade_vertex_glsl_g_default),
-	pointHillshadeSurface: prepare("\nuniform sampler2D u_image;in vec2 v_pos;uniform float u_exaggeration;uniform vec2 u_lightCenter;uniform vec3 u_lightColor;uniform float u_falloffRadius;uniform float u_lightHeight;uniform float u_diffuse;uniform float u_surfaceOpacity;uniform sampler2D u_coverageTex;uniform int u_lightCount;void main() {vec2 lightCenter;vec3 lightColor;float falloffRadius;float diffuse;float coverageAlpha=1.0;if (u_lightCount > 0) {lightCenter  =u_lightCenter;lightColor   =u_lightColor;falloffRadius=u_falloffRadius;diffuse      =u_diffuse;vec2 toLight=lightCenter-v_pos;float dist2D=length(toLight);float t2  =clamp(dist2D/falloffRadius,0.0,1.0);float att2=(1.0-t2)*(1.0-t2);vec2 dv=(texture(u_image,v_pos).rg*8.0-4.0)*u_exaggeration*2.0;vec3 Ns=normalize(vec3(-dv.x,-dv.y,1.0));vec3 Ls=normalize(vec3(toLight,u_lightHeight));float nl=max(dot(Ns,Ls),0.0);nl=nl*nl*nl;float si=nl*diffuse*att2;float sa=si*u_surfaceOpacity;fragColor=vec4(lightColor*si,sa);if (sa < 0.008) discard;} else {lightCenter  =u_lightCenter;lightColor   =u_lightColor;falloffRadius=u_falloffRadius;diffuse      =u_diffuse;vec2 toLight=lightCenter-v_pos;float dist2D=length(toLight);float t   =clamp(dist2D/falloffRadius,0.0,1.0);float atten=(1.0-t)*(1.0-t);vec2 deriv=(texture(u_image,v_pos).rg*8.0-4.0)*u_exaggeration*2.0;vec3 N=normalize(vec3(-deriv.x,-deriv.y,1.0));vec3 L=normalize(vec3(toLight,u_lightHeight));float NdotL=max(dot(N,L),0.0);NdotL=NdotL*NdotL*NdotL;float intensity=NdotL*diffuse*atten;float alpha    =intensity*u_surfaceOpacity;fragColor=vec4(lightColor*intensity,alpha);if (fragColor.a < 0.008) discard;}\n#ifdef OVERDRAW_INSPECTOR\nfragColor=vec4(1.0);\n#endif\n}", point_hillshade_vertex_glsl_g_default),
+	pointHillshadeSurface: prepare("\nuniform sampler2D u_image;in vec2 v_pos;uniform float u_exaggeration;uniform vec2 u_lightCenter;uniform vec3 u_lightColor;uniform float u_falloffRadius;uniform float u_lightHeight;uniform float u_diffuse;uniform float u_surfaceOpacity;uniform sampler2D u_coverageTex;uniform int u_lightCount;uniform highp sampler2D u_lightTex;layout(std140) uniform LightGlobals {highp vec4 u_lg0;highp vec4 u_lg1;};vec4 surfaceLight(highp vec2 lightCenter,vec3 lightColor,highp float falloffRadius,highp float lightHeight,float diffuse,vec3 Ns\n) {vec2 toLight=lightCenter-v_pos;float dist2D=length(toLight);float t=clamp(dist2D/falloffRadius,0.0,1.0);float atten=(1.0-t)*(1.0-t);vec3 L=normalize(vec3(toLight,lightHeight));float nl=max(dot(Ns,L),0.0);nl=nl*nl*nl;float si=nl*diffuse*atten;float sa=si*u_surfaceOpacity;return vec4(lightColor*si,sa);}void main() {bool multi=u_lightCount > 0;float exaggeration=multi ? u_lg0.w : u_exaggeration;vec2 dv=(texture(u_image,v_pos).rg*8.0-4.0)*exaggeration*2.0;vec3 Ns=normalize(vec3(-dv.x,-dv.y,1.0));if (multi) {highp float tilesAtZoom=u_lg0.x;highp vec2  tileOrigin =u_lg0.yz;vec3 accumColor=vec3(0.0);float accumAlpha=0.0;for (int i=0; i < u_lightCount; i++) {highp vec4 a=texelFetch(u_lightTex,ivec2(i*2,0),0);vec4 b=texelFetch(u_lightTex,ivec2(i*2+1,0),0);highp vec2 lightCenter=a.xy*tilesAtZoom-tileOrigin;highp float falloffRadius=a.z*tilesAtZoom;highp float lightHeight=a.w*tilesAtZoom;vec4 c=surfaceLight(lightCenter,b.rgb,falloffRadius,lightHeight,b.a,Ns);accumColor=max(accumColor,c.rgb);accumAlpha=max(accumAlpha,c.a);}fragColor=vec4(accumColor,accumAlpha);if (fragColor.a < 0.008) discard;} else {fragColor=surfaceLight(u_lightCenter,u_lightColor,u_falloffRadius,u_lightHeight,u_diffuse,Ns);if (fragColor.a < 0.008) discard;}\n#ifdef OVERDRAW_INSPECTOR\nfragColor=vec4(1.0);\n#endif\n}", point_hillshade_vertex_glsl_g_default),
 	pointHillshadeViewshedPrepare: prepare("\nuniform sampler2D u_image;in vec2 v_pos;uniform vec2 u_latrange;uniform float u_exaggeration;uniform vec2 u_lightCenter;uniform float u_falloffRadius;uniform float u_shadowHeight;uniform float u_zoom;\n#define PI 3.141592653589793\n#define NUM_STEPS 96\nvec2 sampleDeriv(vec2 pos,float zoomCorrection) {vec2 raw=texture(u_image,pos).rg*8.0-4.0;return raw*zoomCorrection*u_exaggeration*2.0;}void main() {vec2 toLight =u_lightCenter-v_pos;float dist2D =length(toLight);vec2 marchDir=toLight/(dist2D+1e-6);float t=dist2D/u_falloffRadius;if (t > 1.0) {fragColor=vec4(0.0,0.0,0.0,1.0);return;}float exaggerationFactor=u_zoom < 2.0 ? 0.4 : u_zoom < 4.5 ? 0.35 : 0.3;float hillshadeExagg=u_zoom < 15.0 ? (u_zoom-15.0)*exaggerationFactor : 0.0;float zoomCorrection=pow(2.0,-hillshadeExagg);float edgeDist=min(min(v_pos.x,1.0-v_pos.x),min(v_pos.y,1.0-v_pos.y));float edgeConfidence=smoothstep(0.0,0.04,edgeDist);float marchLen=min(dist2D,0.45);float stepSize=marchLen/float(NUM_STEPS);float maxHorizon=-PI;float accumH    = 0.0;vec2  prevDeriv =sampleDeriv(v_pos,zoomCorrection);for (int i=1; i <=NUM_STEPS; i++) {float marchDist=stepSize*float(i);vec2 samplePos =v_pos+marchDir*marchDist;vec2 currDeriv =sampleDeriv(samplePos,zoomCorrection);float slopeContrib=dot((prevDeriv+currDeriv)*0.5,marchDir);accumH+=slopeContrib*stepSize;float horizAngle=atan(accumH,marchDist);maxHorizon=max(maxHorizon,horizAngle);prevDeriv=currDeriv;}float nodeAngle=atan(u_shadowHeight,max(dist2D,1e-5));float rawVisibility=smoothstep(-0.008,0.008,nodeAngle-maxHorizon);float visibility=mix(1.0,rawVisibility,edgeConfidence);fragColor=vec4(visibility,visibility,visibility,1.0);}", hillshade_prepare_vertex_glsl_g_default),
 	line: prepare("uniform lowp float u_device_pixel_ratio;uniform bool u_opacity_override;flat in vec2 v_width2;in vec2 v_normal;in float v_gamma_scale;\n#ifdef GLOBE\nin float v_depth;\n#endif\n#pragma mapbox: define highp vec4 color\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\nvoid main() {\n#pragma mapbox: initialize highp vec4 color\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\nfloat dist=length(v_normal)*v_width2.s;float blur2=(blur+1.0/u_device_pixel_ratio)*v_gamma_scale;float alpha=clamp(min(dist-(v_width2.t-blur2),v_width2.s-dist)/blur2,0.0,1.0);float finalOpacity=u_opacity_override ? 1.0 : opacity;fragColor=color*(alpha*finalOpacity);\n#ifdef GLOBE\nif (v_depth > 1.0) {discard;}\n#endif\n#ifdef OVERDRAW_INSPECTOR\nfragColor=vec4(1.0);\n#endif\n}", "\n#define scale 0.015873016\nlayout(location=0) in vec2 a_pos_normal;layout(location=1) in vec4 a_data;uniform vec2 u_translation;uniform mediump float u_ratio;uniform vec2 u_units_to_pixels;uniform lowp float u_device_pixel_ratio;out vec2 v_normal;flat out vec2 v_width2;out float v_gamma_scale;out highp float v_linesofar;\n#ifdef GLOBE\nout float v_depth;\n#endif\n#pragma mapbox: define highp vec4 color\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\n#pragma mapbox: define mediump float gapwidth\n#pragma mapbox: define lowp float offset\n#pragma mapbox: define mediump float width\nvoid main() {\n#pragma mapbox: initialize highp vec4 color\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\n#pragma mapbox: initialize mediump float gapwidth\n#pragma mapbox: initialize lowp float offset\n#pragma mapbox: initialize mediump float width\nfloat ANTIALIASING=1.0/u_device_pixel_ratio/2.0;vec2 a_extrude=a_data.xy-128.0;float a_direction=mod(a_data.z,4.0)-1.0;v_linesofar=(floor(a_data.z/4.0)+a_data.w*64.0)*2.0;vec2 pos=floor(a_pos_normal*0.5);mediump vec2 normal=a_pos_normal-2.0*pos;normal.y=normal.y*2.0-1.0;v_normal=normal;gapwidth=gapwidth/2.0;float halfwidth=width/2.0;offset=-1.0*offset;float inset=gapwidth+(gapwidth > 0.0 ? ANTIALIASING : 0.0);float outset=gapwidth+halfwidth*(gapwidth > 0.0 ? 2.0 : 1.0)+(halfwidth==0.0 ? 0.0 : ANTIALIASING);mediump vec2 dist=outset*a_extrude*scale;mediump float u=0.5*a_direction;mediump float t=1.0-abs(u);mediump vec2 offset2=offset*a_extrude*scale*normal.y*mat2(t,-u,u,t);float adjustedThickness=projectLineThickness(pos.y);vec4 projected_no_extrude=projectTile(pos+offset2/u_ratio*adjustedThickness+u_translation);vec4 projected_with_extrude=projectTile(pos+offset2/u_ratio*adjustedThickness+u_translation+dist/u_ratio*adjustedThickness);gl_Position=projected_with_extrude;\n#ifdef GLOBE\nv_depth=gl_Position.z/gl_Position.w;\n#endif\n#ifdef TERRAIN3D\nv_gamma_scale=1.0;\n#else\nfloat extrude_length_without_perspective=length(dist);float extrude_length_with_perspective=length((projected_with_extrude.xy-projected_no_extrude.xy)/projected_with_extrude.w*u_units_to_pixels);v_gamma_scale=extrude_length_without_perspective/extrude_length_with_perspective;\n#endif\nv_width2=vec2(outset,inset);}"),
 	lineGradient: prepare("uniform lowp float u_device_pixel_ratio;uniform sampler2D u_image;uniform bool u_opacity_override;flat in vec2 v_width2;in vec2 v_normal;in float v_gamma_scale;in highp vec2 v_uv;\n#ifdef GLOBE\nin float v_depth;\n#endif\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\nvoid main() {\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\nfloat dist=length(v_normal)*v_width2.s;float blur2=(blur+1.0/u_device_pixel_ratio)*v_gamma_scale;float alpha=clamp(min(dist-(v_width2.t-blur2),v_width2.s-dist)/blur2,0.0,1.0);vec4 color=texture(u_image,v_uv);float finalOpacity=u_opacity_override ? 1.0 : opacity;fragColor=color*(alpha*finalOpacity);\n#ifdef GLOBE\nif (v_depth > 1.0) {discard;}\n#endif\n#ifdef OVERDRAW_INSPECTOR\nfragColor=vec4(1.0);\n#endif\n}", "\n#define scale 0.015873016\nlayout(location=0) in vec2 a_pos_normal;layout(location=1) in vec4 a_data;layout(location=2) in float a_uv_x;layout(location=3) in float a_split_index;uniform vec2 u_translation;uniform mediump float u_ratio;uniform lowp float u_device_pixel_ratio;uniform vec2 u_units_to_pixels;uniform float u_image_height;out vec2 v_normal;flat out vec2 v_width2;out float v_gamma_scale;out highp vec2 v_uv;\n#ifdef GLOBE\nout float v_depth;\n#endif\n#pragma mapbox: define lowp float blur\n#pragma mapbox: define lowp float opacity\n#pragma mapbox: define mediump float gapwidth\n#pragma mapbox: define lowp float offset\n#pragma mapbox: define mediump float width\nvoid main() {\n#pragma mapbox: initialize lowp float blur\n#pragma mapbox: initialize lowp float opacity\n#pragma mapbox: initialize mediump float gapwidth\n#pragma mapbox: initialize lowp float offset\n#pragma mapbox: initialize mediump float width\nfloat ANTIALIASING=1.0/u_device_pixel_ratio/2.0;vec2 a_extrude=a_data.xy-128.0;float a_direction=mod(a_data.z,4.0)-1.0;highp float texel_height=1.0/u_image_height;highp float half_texel_height=0.5*texel_height;v_uv=vec2(a_uv_x,a_split_index*texel_height-half_texel_height);vec2 pos=floor(a_pos_normal*0.5);mediump vec2 normal=a_pos_normal-2.0*pos;normal.y=normal.y*2.0-1.0;v_normal=normal;gapwidth=gapwidth/2.0;float halfwidth=width/2.0;offset=-1.0*offset;float inset=gapwidth+(gapwidth > 0.0 ? ANTIALIASING : 0.0);float outset=gapwidth+halfwidth*(gapwidth > 0.0 ? 2.0 : 1.0)+(halfwidth==0.0 ? 0.0 : ANTIALIASING);mediump vec2 dist=outset*a_extrude*scale;mediump float u=0.5*a_direction;mediump float t=1.0-abs(u);mediump vec2 offset2=offset*a_extrude*scale*normal.y*mat2(t,-u,u,t);float adjustedThickness=projectLineThickness(pos.y);vec4 projected_no_extrude=projectTile(pos+offset2/u_ratio*adjustedThickness+u_translation);vec4 projected_with_extrude=projectTile(pos+offset2/u_ratio*adjustedThickness+u_translation+dist/u_ratio*adjustedThickness);gl_Position=projected_with_extrude;\n#ifdef GLOBE\nv_depth=gl_Position.z/gl_Position.w;\n#endif\n#ifdef TERRAIN3D\nv_gamma_scale=1.0;\n#else\nfloat extrude_length_without_perspective=length(dist);float extrude_length_with_perspective=length((projected_with_extrude.xy-projected_no_extrude.xy)/projected_with_extrude.w*u_units_to_pixels);v_gamma_scale=extrude_length_without_perspective/extrude_length_with_perspective;\n#endif\nv_width2=vec2(outset,inset);}"),
@@ -44082,14 +44082,15 @@ const pointHillshadeUniforms = (context, locations) => ({
 	"u_diffuse": new Uniform1f(context, locations.u_diffuse),
 	"u_ambient": new Uniform1f(context, locations.u_ambient),
 	"u_coverageTex": new Uniform1i(context, locations.u_coverageTex),
-	"u_lightCount": new Uniform1i(context, locations.u_lightCount)
+	"u_lightCount": new Uniform1i(context, locations.u_lightCount),
+	"u_lightTex": new Uniform1i(context, locations.u_lightTex)
 });
 /** Light altitude: 3 m AGL — low point source just above the antenna. */
 const LIGHT_ALT_M$2 = 3;
 /** Virtual height for shadow sightline (20 m). Decoupled from the
 *  physical light height so shadows respond to real ridges, not every
 *  small slope that would occlude a 3 m source. */
-const SHADOW_ALT_M$1 = 20;
+const SHADOW_ALT_M = 20;
 const pointHillshadeUniformValues = (painter, tile, layer, lightCount = 0) => {
 	const center = layer.paint.get("point-hillshade-center");
 	const color = layer.paint.get("point-hillshade-color");
@@ -44106,7 +44107,7 @@ const pointHillshadeUniformValues = (painter, tile, layer, lightCount = 0) => {
 	const radiusTile = radiusMeters * meterInMerc / tileSizeMerc;
 	const heightTile = LIGHT_ALT_M$2 * meterInMerc / tileSizeMerc;
 	const diffuse = 1.5 + intensity * 2;
-	const shadowHeightTile = SHADOW_ALT_M$1 * meterInMerc / tileSizeMerc;
+	const shadowHeightTile = SHADOW_ALT_M * meterInMerc / tileSizeMerc;
 	return {
 		"u_image": 0,
 		"u_latrange": getTileLatRange$1(tileID),
@@ -44123,7 +44124,8 @@ const pointHillshadeUniformValues = (painter, tile, layer, lightCount = 0) => {
 		"u_diffuse": diffuse,
 		"u_ambient": .18,
 		"u_coverageTex": 1,
-		"u_lightCount": lightCount
+		"u_lightCount": lightCount,
+		"u_lightTex": 0
 	};
 };
 function getTileLatRange$1(tileID) {
@@ -44143,7 +44145,8 @@ const pointHillshadeSurfaceUniforms = (context, locations) => ({
 	"u_diffuse": new Uniform1f(context, locations.u_diffuse),
 	"u_surfaceOpacity": new Uniform1f(context, locations.u_surfaceOpacity),
 	"u_coverageTex": new Uniform1i(context, locations.u_coverageTex),
-	"u_lightCount": new Uniform1i(context, locations.u_lightCount)
+	"u_lightCount": new Uniform1i(context, locations.u_lightCount),
+	"u_lightTex": new Uniform1i(context, locations.u_lightTex)
 });
 /** Light altitude: 3 m AGL — matches terrain pass. */
 const LIGHT_ALT_M$1 = 3;
@@ -44178,7 +44181,8 @@ const pointHillshadeSurfaceUniformValues = (painter, tile, layer, lightCount = 0
 		"u_diffuse": diffuse,
 		"u_surfaceOpacity": surfaceOpacity,
 		"u_coverageTex": 1,
-		"u_lightCount": lightCount
+		"u_lightCount": lightCount,
+		"u_lightTex": 0
 	};
 };
 //#endregion
@@ -46436,13 +46440,16 @@ function prepareHillshade(painter, tileManager, tileIDs, layer, depthMode, stenc
 }
 //#endregion
 //#region src/webgl/draw/draw_point_hillshade.ts
-/** Max lights rendered per tile.  Uncapped — every node in
-*  the viewport gets the full terrain-occluded light effect. */
-const MAX_LIGHTS_PER_TILE = 9999;
 /** Light altitude: 3 m AGL. */
 const LIGHT_ALT_M = 3;
-/** Virtual shadow height for sightline probes. */
-const SHADOW_ALT_M = 20;
+/** Texture unit for the per-light RGBA32F data texture. */
+const LIGHT_TEX_UNIT = 4;
+/** Binding point for the LightGlobals UBO. */
+const LIGHTS_UBO_BINDING = 0;
+/** Coverage exaggeration (matches the legacy multi-light pass). */
+const COVERAGE_EXAGGERATION = .5;
+/** Coverage ambient term (matches the legacy multi-light pass). */
+const COVERAGE_AMBIENT = .18;
 let _preparedLights = [];
 let _preparedGeneration = -1;
 function prepareLights(layer) {
@@ -46461,7 +46468,7 @@ function prepareLights(layer) {
 	_preparedGeneration = layer._lights.length;
 	return _preparedLights;
 }
-function filterLightsForTile(prepared, coord) {
+function filterLightsForTile(prepared, coord, maxLights) {
 	const tilesAtZoom = Math.pow(2, coord.canonical.z);
 	const originX = coord.canonical.x / tilesAtZoom;
 	const originY = coord.canonical.y / tilesAtZoom;
@@ -46476,70 +46483,124 @@ function filterLightsForTile(prepared, coord) {
 		if (pl.mercY - pl.radiusMerc > originY + size) continue;
 		const dx = pl.mercX - cx;
 		const dy = pl.mercY - cy;
-		const isObs = pl.light.color[0] > .4 && pl.light.color[2] > .8;
 		hits.push({
 			pl,
-			dist: dx * dx + dy * dy,
-			isObserver: isObs
+			dist: dx * dx + dy * dy
 		});
 	}
-	hits.sort((a, b) => {
-		const ra = a.pl.radiusMerc;
-		const rb = b.pl.radiusMerc;
-		if (ra !== rb) return rb - ra;
-		return a.dist - b.dist;
-	});
-	return hits.slice(0, MAX_LIGHTS_PER_TILE).map((h) => h.pl);
+	if (hits.length > maxLights) {
+		hits.sort((a, b) => {
+			const ra = a.pl.radiusMerc;
+			const rb = b.pl.radiusMerc;
+			if (ra !== rb) return rb - ra;
+			return a.dist - b.dist;
+		});
+		hits.length = maxLights;
+	}
+	return hits.map((h) => h.pl);
 }
 function getTileLatRange(tileID) {
 	const tilesAtZoom = Math.pow(2, tileID.canonical.z);
 	const y = tileID.canonical.y;
 	return [new MercatorCoordinate(0, y / tilesAtZoom).toLngLat().lat, new MercatorCoordinate(0, (y + 1) / tilesAtZoom).toLngLat().lat];
 }
-function coverageLightMainUniforms(pl, tileID) {
-	const tilesAtZoom = Math.pow(2, tileID.canonical.z);
-	const tileSizeMerc = 1 / tilesAtZoom;
-	const lightTileX = pl.mercX * tilesAtZoom - tileID.canonical.x;
-	const lightTileY = pl.mercY * tilesAtZoom - tileID.canonical.y;
-	const radiusTile = pl.light.falloffMeters * pl.meterInMerc / tileSizeMerc;
-	const heightTile = LIGHT_ALT_M * pl.meterInMerc / tileSizeMerc;
-	const shadowTile = SHADOW_ALT_M * pl.meterInMerc / tileSizeMerc;
-	const diffuse = 1.5 + pl.light.intensity * 2;
+function coverageMainUniforms(lightCount) {
 	return {
 		"u_image": 0,
-		"u_latrange": getTileLatRange(tileID),
-		"u_exaggeration": .5,
-		"u_lightCenter": [lightTileX, lightTileY],
-		"u_lightColor": pl.light.color,
-		"u_falloffRadius": radiusTile,
-		"u_lightHeight": heightTile,
-		"u_shadowHeight": shadowTile,
-		"u_diffuse": diffuse,
-		"u_ambient": .18,
+		"u_latrange": [0, 0],
+		"u_exaggeration": COVERAGE_EXAGGERATION,
+		"u_lightCenter": [0, 0],
+		"u_lightColor": [
+			0,
+			0,
+			0
+		],
+		"u_falloffRadius": 1,
+		"u_lightHeight": 0,
+		"u_shadowHeight": 0,
+		"u_diffuse": 0,
+		"u_ambient": COVERAGE_AMBIENT,
 		"u_coverageTex": 1,
-		"u_lightCount": 0
+		"u_lightCount": lightCount,
+		"u_lightTex": LIGHT_TEX_UNIT
 	};
 }
-function coverageLightSurfaceUniforms(pl, tileID, surfaceOpacity) {
-	const tilesAtZoom = Math.pow(2, tileID.canonical.z);
-	const tileSizeMerc = 1 / tilesAtZoom;
-	const lightTileX = pl.mercX * tilesAtZoom - tileID.canonical.x;
-	const lightTileY = pl.mercY * tilesAtZoom - tileID.canonical.y;
-	const radiusTile = pl.light.falloffMeters * pl.meterInMerc / tileSizeMerc;
-	const heightTile = LIGHT_ALT_M * pl.meterInMerc / tileSizeMerc;
-	const diffuse = 1.5 + pl.light.intensity * 2;
+function coverageSurfaceUniforms(lightCount, surfaceOpacity) {
 	return {
 		"u_image": 0,
-		"u_exaggeration": .5,
-		"u_lightCenter": [lightTileX, lightTileY],
-		"u_lightColor": pl.light.color,
-		"u_falloffRadius": radiusTile,
-		"u_lightHeight": heightTile,
-		"u_diffuse": diffuse,
+		"u_exaggeration": COVERAGE_EXAGGERATION,
+		"u_lightCenter": [0, 0],
+		"u_lightColor": [
+			0,
+			0,
+			0
+		],
+		"u_falloffRadius": 1,
+		"u_lightHeight": 0,
+		"u_diffuse": 0,
 		"u_surfaceOpacity": surfaceOpacity,
 		"u_coverageTex": 1,
-		"u_lightCount": 0
+		"u_lightCount": lightCount,
+		"u_lightTex": LIGHT_TEX_UNIT
 	};
+}
+let _lightTex = null;
+let _lightData = new Float32Array(0);
+let _lightUBO = null;
+const _uboData = new Float32Array(8);
+const _blockBound = /* @__PURE__ */ new WeakSet();
+/** Upload a tile's culled lights into the RGBA32F data texture (unit 4). */
+function uploadTileLights(context, lights) {
+	const gl = context.gl;
+	const n = lights.length;
+	if (_lightData.length < n * 8) _lightData = new Float32Array(n * 8);
+	const data = _lightData;
+	for (let i = 0; i < n; i++) {
+		const pl = lights[i];
+		const o = i * 8;
+		data[o] = pl.mercX;
+		data[o + 1] = pl.mercY;
+		data[o + 2] = pl.radiusMerc;
+		data[o + 3] = LIGHT_ALT_M * pl.meterInMerc;
+		data[o + 4] = pl.light.color[0];
+		data[o + 5] = pl.light.color[1];
+		data[o + 6] = pl.light.color[2];
+		data[o + 7] = 1.5 + pl.light.intensity * 2;
+	}
+	context.activeTexture.set(gl.TEXTURE0 + LIGHT_TEX_UNIT);
+	if (!_lightTex) {
+		_lightTex = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, _lightTex);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	} else gl.bindTexture(gl.TEXTURE_2D, _lightTex);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, n * 2, 1, 0, gl.RGBA, gl.FLOAT, data.subarray(0, n * 8));
+}
+/** Upload the shared per-tile globals into the LightGlobals UBO. */
+function updateGlobalsUBO(context, tilesAtZoom, tileOriginX, tileOriginY, latLo, latHi) {
+	const gl = context.gl;
+	_uboData[0] = tilesAtZoom;
+	_uboData[1] = tileOriginX;
+	_uboData[2] = tileOriginY;
+	_uboData[3] = COVERAGE_EXAGGERATION;
+	_uboData[4] = latLo;
+	_uboData[5] = latHi;
+	_uboData[6] = COVERAGE_AMBIENT;
+	_uboData[7] = 0;
+	if (!_lightUBO) _lightUBO = gl.createBuffer();
+	gl.bindBuffer(gl.UNIFORM_BUFFER, _lightUBO);
+	gl.bufferData(gl.UNIFORM_BUFFER, _uboData, gl.DYNAMIC_DRAW);
+	gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTS_UBO_BINDING, _lightUBO);
+}
+/** Link a program's LightGlobals block to the UBO binding point (once). */
+function ensureBlockBinding(context, program) {
+	if (_blockBound.has(program)) return;
+	const gl = context.gl;
+	const idx = gl.getUniformBlockIndex(program, "LightGlobals");
+	if (idx !== gl.INVALID_INDEX) gl.uniformBlockBinding(program, idx, LIGHTS_UBO_BINDING);
+	_blockBound.add(program);
 }
 function drawCoverageMultiLight(painter, tileManager, layer, tileIDs, renderOptions) {
 	const context = painter.context;
@@ -46555,6 +46616,7 @@ function drawCoverageMultiLight(painter, tileManager, layer, tileIDs, renderOpti
 		true
 	]);
 	const surfaceOpacity = layer.paint.get("point-hillshade-surface-opacity");
+	const maxLights = Math.max(1, Math.floor(context.maxTextureSize / 2));
 	const prepared = prepareLights(layer);
 	layer._lightsDirty &&= false;
 	const [stencil, coords] = painter.getStencilConfigForOverlapAndUpdateStencilID(tileIDs);
@@ -46563,7 +46625,7 @@ function drawCoverageMultiLight(painter, tileManager, layer, tileIDs, renderOpti
 	for (const coord of coords) {
 		const tile = tileManager.getTile(coord);
 		if (!tile?.fbo) continue;
-		const tileLights = filterLightsForTile(prepared, coord);
+		const tileLights = filterLightsForTile(prepared, coord, maxLights);
 		if (tileLights.length === 0) continue;
 		const mesh = projection.getMeshFromTileID(context, coord.canonical, false, true, "raster");
 		const terrainData = painter.style.map.terrain?.getTerrainData(coord);
@@ -46576,13 +46638,21 @@ function drawCoverageMultiLight(painter, tileManager, layer, tileIDs, renderOpti
 		const stencilMode = stencil[coord.overscaledZ];
 		context.activeTexture.set(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, tile.fbo.colorAttachment.get());
+		const tilesAtZoom = Math.pow(2, coord.canonical.z);
+		const [latLo, latHi] = getTileLatRange(coord);
+		uploadTileLights(context, tileLights);
+		updateGlobalsUBO(context, tilesAtZoom, coord.canonical.x, coord.canonical.y, latLo, latHi);
 		gl.blendEquation(gl.MAX);
-		for (const pl of tileLights) {
-			if (surfProg) surfProg.draw(context, gl.TRIANGLES, depthMode, stencilMode, maxBlend, CullFaceMode.backCCW, coverageLightSurfaceUniforms(pl, coord, surfaceOpacity), terrainData, projectionData, layer.id, mesh.vertexBuffer, mesh.indexBuffer, mesh.segments);
-			mainProg.draw(context, gl.TRIANGLES, depthMode, stencilMode, maxBlend, CullFaceMode.backCCW, coverageLightMainUniforms(pl, coord), terrainData, projectionData, layer.id, mesh.vertexBuffer, mesh.indexBuffer, mesh.segments);
+		const n = tileLights.length;
+		if (surfProg) {
+			ensureBlockBinding(context, surfProg.program);
+			surfProg.draw(context, gl.TRIANGLES, depthMode, stencilMode, maxBlend, CullFaceMode.backCCW, coverageSurfaceUniforms(n, surfaceOpacity), terrainData, projectionData, layer.id, mesh.vertexBuffer, mesh.indexBuffer, mesh.segments);
 		}
+		ensureBlockBinding(context, mainProg.program);
+		mainProg.draw(context, gl.TRIANGLES, depthMode, stencilMode, maxBlend, CullFaceMode.backCCW, coverageMainUniforms(n), terrainData, projectionData, layer.id, mesh.vertexBuffer, mesh.indexBuffer, mesh.segments);
 		gl.blendEquation(gl.FUNC_ADD);
 	}
+	gl.bindBufferBase(gl.UNIFORM_BUFFER, LIGHTS_UBO_BINDING, null);
 }
 function drawPointHillshade(painter, tileManager, layer, tileIDs, renderOptions) {
 	if (painter.renderPass !== "translucent") return;
@@ -61143,7 +61213,7 @@ function buildStyle() {
 const styleLocations = locationsWithTileID(features).filter((v) => v.zoom < 15);
 window.maplibreglBenchmarks = window.maplibreglBenchmarks || {};
 setWorkerUrl(new URL("./benchmarks_worker.mjs", import.meta.url).toString());
-const version = "main 427ad02";
+const version = "main 7c5ddc0";
 function register(name, bench) {
 	window.maplibreglBenchmarks[name] = window.maplibreglBenchmarks[name] || {};
 	window.maplibreglBenchmarks[name][version] = bench;
