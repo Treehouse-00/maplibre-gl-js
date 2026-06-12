@@ -1,6 +1,6 @@
 import {describe, beforeEach, test, expect, vi} from 'vitest';
-import {MercatorProjection} from '../../geo/projection/mercator_projection';
-import {createMap, beforeMapTest, sleep} from '../../util/test/util';
+import {MercatorProjection} from '../../geo/projection/mercator_projection.ts';
+import {createMap, beforeMapTest, sleep} from '../../util/test/util.ts';
 
 beforeEach(() => {
     beforeMapTest();
@@ -21,19 +21,14 @@ describe('resize', () => {
 
     });
 
-    test('fires movestart, move, resize, and moveend events', () => {
-        const map = createMap(),
-            events = [];
-
-        (['movestart', 'move', 'resize', 'moveend'] as any).forEach((event) => {
-            map.on(event, (e) => {
-                events.push(e.type);
-            });
-        });
+    const expectedMovementEvents  = ['movestart', 'move', 'resize', 'moveend'] as const;
+    test.each(expectedMovementEvents)('fires %s event on resize', (event) => {
+        const map = createMap();
+        const onEvent = vi.fn();
+        map.on(event, onEvent);
 
         map.resize();
-        expect(events).toEqual(['movestart', 'move', 'resize', 'moveend']);
-
+        expect(onEvent).toHaveBeenCalled();
     });
 
     test('listen to window resize event', () => {

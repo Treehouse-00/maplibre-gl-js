@@ -1,20 +1,20 @@
-import {StyleLayer} from '../style_layer';
+import {StyleLayer} from '../style_layer.ts';
 
-import properties, {type PointHillshadePaintPropsPossiblyEvaluated} from './point_hillshade_style_layer_properties';
-import {type Transitionable, type Transitioning, type PossiblyEvaluated} from '../properties';
+import properties, {type PointHillshadePaintPropsPossiblyEvaluated} from './point_hillshade_style_layer_properties.ts';
+import {type Transitionable, type Transitioning, type PossiblyEvaluated} from '../properties.ts';
 
-import type {PointHillshadePaintProps} from './point_hillshade_style_layer_properties';
+import type {PointHillshadePaintProps} from './point_hillshade_style_layer_properties.ts';
 import type {LayerSpecification} from '@maplibre/maplibre-gl-style-spec';
-import type {EvaluationParameters} from '../evaluation_parameters';
+import type {EvaluationParameters} from '../evaluation_parameters.ts';
 
 // ── Multi-light coverage descriptor ──────────────────────────────────
 
-export interface CoverageLight {
+export type CoverageLight = {
     center: [number, number];           // [lng, lat]
     color: [number, number, number];    // GL-ready RGB [0,1]
     falloffMeters: number;
     intensity: number;
-}
+};
 
 export const isPointHillshadeStyleLayer = (layer: StyleLayer): layer is PointHillshadeStyleLayer => (layer.type as string) === 'point-hillshade';
 
@@ -34,7 +34,7 @@ export class PointHillshadeStyleLayer extends StyleLayer {
         this.recalculate({zoom: 0, zoomHistory: {}} as EvaluationParameters, undefined);
     }
 
-    hasOffscreenPass() {
+    hasOffscreenPass(): boolean {
         return false;
     }
 
@@ -42,7 +42,7 @@ export class PointHillshadeStyleLayer extends StyleLayer {
      * Push an array of coverage lights.  The draw pass lazily creates
      * per-tile coverage textures from this data.
      */
-    setLights(lights: CoverageLight[]) {
+    setLights(lights: CoverageLight[]): void {
         this._lights = lights;
         this._lightsDirty = true;
     }
@@ -52,7 +52,7 @@ export class PointHillshadeStyleLayer extends StyleLayer {
     }
 
     /** Release all cached GL textures. */
-    clearCoverageTextures(gl: WebGLRenderingContext | WebGL2RenderingContext) {
+    clearCoverageTextures(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
         for (const tex of this._coverageTextures.values()) {
             gl.deleteTexture(tex);
         }

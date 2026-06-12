@@ -1,15 +1,15 @@
-import type {LngLat, LngLatLike} from './lng_lat';
-import type {LngLatBounds} from './lng_lat_bounds';
-import type {MercatorCoordinate} from './mercator_coordinate';
+import type {LngLat, LngLatLike} from './lng_lat.ts';
+import type {LngLatBounds} from './lng_lat_bounds.ts';
+import type {MercatorCoordinate} from './mercator_coordinate.ts';
 import type Point from '@mapbox/point-geometry';
 import type {mat4, mat2, vec3, vec4} from 'gl-matrix';
-import type {UnwrappedTileID, OverscaledTileID, CanonicalTileID} from '../tile/tile_id';
-import type {PaddingOptions} from './edge_insets';
-import type {Terrain} from '../render/terrain';
-import type {PointProjection} from '../symbol/projection';
-import type {ProjectionData, ProjectionDataParams} from './projection/projection_data';
-import type {CoveringTilesDetailsProvider} from './projection/covering_tiles_details_provider';
-import type {Frustum} from '../util/primitives/frustum';
+import type {UnwrappedTileID, OverscaledTileID, CanonicalTileID} from '../tile/tile_id.ts';
+import type {PaddingOptions} from './edge_insets.ts';
+import type {Terrain} from '../render/terrain.ts';
+import type {PointProjection} from '../symbol/projection.ts';
+import type {ProjectionData, ProjectionDataParams} from './projection/projection_data.ts';
+import type {CoveringTilesDetailsProvider} from './projection/covering_tiles_details_provider.ts';
+import type {Frustum} from '../util/primitives/frustum.ts';
 
 /**
  * The callback defining how the transform constrains the viewport's lnglat and zoom to respect the longitude and latitude bounds.
@@ -226,7 +226,7 @@ interface ITransformMutators {
      * Used in mercator transform to precompute tile matrices (posMatrix).
      * @param coords - Array of tile IDs that will be rendered.
      */
-    populateCache(coords: Array<OverscaledTileID>): void;
+    populateCache(coords: OverscaledTileID[]): void;
 
     /**
      * @internal
@@ -293,7 +293,7 @@ export interface IReadonlyTransform extends ITransformGetters {
      * Return any "wrapped" copies of a given tile coordinate that are visible
      * in the current view.
      */
-    getVisibleUnwrappedCoordinates(tileID: CanonicalTileID): Array<UnwrappedTileID>;
+    getVisibleUnwrappedCoordinates(tileID: CanonicalTileID): UnwrappedTileID[];
 
     /**
      * @internal
@@ -421,7 +421,7 @@ export interface IReadonlyTransform extends ITransformGetters {
      * screen where the *base* of a visible extrusion could be.
      *
      */
-    getCameraQueryGeometry(queryGeometry: Array<Point>): Array<Point>;
+    getCameraQueryGeometry(queryGeometry: Point[]): Point[];
 
     /**
      * Return the distance to the camera in clip space from a LngLat.

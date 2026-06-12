@@ -1,11 +1,12 @@
 import * as d3 from 'd3';
+import { Measurement } from './benchmark';
 
 export type RegressionResults = {
     correlation:number;
     slope:number;
     intercept: number;
-    data: [number, number][];
-}
+    data: Array<[number, number]>;
+};
 
 export type Summary = {
     mean: number;
@@ -21,9 +22,12 @@ export type Summary = {
     min: number;
     argmax: number;
     max: number;
-}
+};
 
-export function probabilitiesOfSuperiority(before, after) {
+export function probabilitiesOfSuperiority(before: number[], after: number[]): {
+    superior: number;
+    inferior: number;
+} {
     const timerPrecision = 0.005;
 
     let superiorCount = 0;
@@ -45,7 +49,7 @@ export function probabilitiesOfSuperiority(before, after) {
     };
 }
 
-export function summaryStatistics(data): Summary {
+export function summaryStatistics(data: number[]): Summary {
     const variance = d3.variance(data);
     const sorted = data.slice().sort(d3.ascending);
     const [q1, q2, q3] = [.25, .5, .75].map((d) => d3.quantile(sorted, d));
@@ -84,7 +88,7 @@ export function summaryStatistics(data): Summary {
     };
 }
 
-export function regression(measurements) {
+export function regression(measurements: Measurement[]): RegressionResults {
     const result = [];
     for (let i = 0, n = 1; i + n < measurements.length; i += n, n++) {
         const subset = measurements.slice(i, i + n);
@@ -96,7 +100,7 @@ export function regression(measurements) {
     return leastSquaresRegression(result);
 }
 
-function leastSquaresRegression(data): RegressionResults {
+function leastSquaresRegression(data: Array<[number, number]>): RegressionResults {
     const meanX = d3.sum(data, d => d[0]) / data.length;
     const meanY = d3.sum(data, d => d[1]) / data.length;
     const varianceX = d3.variance(data, d => d[0]);
@@ -113,7 +117,7 @@ function leastSquaresRegression(data): RegressionResults {
     return {correlation, slope, intercept, data};
 }
 
-export function kde(samples, summary, ticks): [number, number][] {
+export function kde(samples: number[], summary: Summary, ticks: number[]): Array<[number, number]> {
     const kernel = kernelEpanechnikov;
 
     if (samples.length === 0) {

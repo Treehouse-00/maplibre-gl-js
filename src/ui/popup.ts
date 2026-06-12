@@ -1,17 +1,17 @@
-import {extend} from '../util/util';
-import {Event, Evented} from '../util/evented';
-import {DOM} from '../util/dom';
-import {LngLat} from '../geo/lng_lat';
+import {extend} from '../util/util.ts';
+import {Event, Evented} from '../util/evented.ts';
+import {DOM} from '../util/dom.ts';
+import {LngLat} from '../geo/lng_lat.ts';
 import Point from '@mapbox/point-geometry';
-import {smartWrap} from '../util/smart_wrap';
-import {anchorTranslate, applyAnchorClass} from './anchor';
+import {smartWrap} from '../util/smart_wrap.ts';
+import {anchorTranslate, applyAnchorClass} from './anchor.ts';
 
-import type {MapLibreEvent, MapMouseEvent} from './events';
-import type {PositionAnchor} from './anchor';
-import type {Map} from './map';
-import type {LngLatLike} from '../geo/lng_lat';
-import type {PointLike} from './camera';
-import type {PaddingOptions} from '../geo/edge_insets';
+import type {MapLibreEvent, MapMouseEvent} from './events.ts';
+import type {PositionAnchor} from './anchor.ts';
+import type {Map} from './map.ts';
+import type {LngLatLike} from '../geo/lng_lat.ts';
+import type {PointLike} from './camera.ts';
+import type {PaddingOptions} from '../geo/edge_insets.ts';
 
 const defaultOptions = {
     closeButton: true,
@@ -224,6 +224,8 @@ export class Popup extends Evented {
         }
 
         this._map.on('remove', this.remove);
+        this._map.on('terrain', this._update);
+        this._map.on('projectiontransition', this._update);
         this._update();
         this._focusFirstElement();
 
@@ -246,7 +248,7 @@ export class Popup extends Evented {
     /**
      * Add opacity to popup if in globe projection and location is behind view
      */
-    _updateOpacity = () => {
+    _updateOpacity = (): void => {
         if (this.options.locationOccludedOpacity === undefined) {
             return;
         }
@@ -260,7 +262,7 @@ export class Popup extends Evented {
     /**
      * @returns `true` if the popup is open, `false` if it is closed.
      */
-    isOpen() {
+    isOpen(): boolean {
         return !!this._map;
     }
 
@@ -288,6 +290,8 @@ export class Popup extends Evented {
             this._map.off('move', this._onClose);
             this._map.off('click', this._onClose);
             this._map.off('remove', this.remove);
+            this._map.off('terrain', this._update);
+            this._map.off('projectiontransition', this._update);
             this._map.off('mousemove', this._update);
             this._map.off('mouseup', this._update);
             this._map.off('drag', this._update);
@@ -507,7 +511,7 @@ export class Popup extends Evented {
      * popup.addClassName('some-class')
      * ```
      */
-    addClassName(className: string) {
+    addClassName(className: string): this {
         if (this._container) {
             this._container.classList.add(className);
         }
@@ -525,7 +529,7 @@ export class Popup extends Evented {
      * popup.removeClassName('some-class')
      * ```
      */
-    removeClassName(className: string) {
+    removeClassName(className: string): this {
         if (this._container) {
             this._container.classList.remove(className);
         }
@@ -573,7 +577,7 @@ export class Popup extends Evented {
      * popup.setSubpixelPositioning(true);
      * ```
      */
-    setSubpixelPositioning(value: boolean) {
+    setSubpixelPositioning(value: boolean): void {
         this.options.subpixelPositioning = value;
     }
 
@@ -586,12 +590,12 @@ export class Popup extends Evented {
      * popup.setPadding({ top: 10, right: 20, bottom: 30, left: 40 });
      * ```
      */
-    setPadding(padding?: PaddingOptions) {
+    setPadding(padding?: PaddingOptions): void {
         this.options.padding = padding;
         this._update();
     }
 
-    _createCloseButton() {
+    _createCloseButton(): void {
         if (this.options.closeButton) {
             this._closeButton = DOM.create('button', 'maplibregl-popup-close-button', this._content);
             this._closeButton.type = 'button';
@@ -600,7 +604,7 @@ export class Popup extends Evented {
         }
     }
 
-    _update = (event?: MapLibreEvent | MapMouseEvent) => {
+    _update = (event?: MapLibreEvent | MapMouseEvent): void => {
         
         const hasPosition = this._lngLat || this._trackPointer;
 
@@ -685,15 +689,15 @@ export class Popup extends Evented {
         this._updateOpacity();
     };
 
-    _focusFirstElement() {
+    _focusFirstElement(): void {
         if (!this.options.focusAfterOpen || !this._container) return;
 
-        const firstFocusable = this._container.querySelector(focusQuerySelector) as HTMLElement;
+        const firstFocusable = this._container.querySelector<HTMLElement>(focusQuerySelector);
 
         if (firstFocusable) firstFocusable.focus();
     }
 
-    _onClose = () => {
+    _onClose = (): void => {
         this.remove();
     };
 }

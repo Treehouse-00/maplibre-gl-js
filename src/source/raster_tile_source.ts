@@ -1,19 +1,19 @@
-import {extend, pick} from '../util/util';
+import {ensureError, extend, pick} from '../util/util.ts';
 
-import {ImageRequest} from '../util/image_request';
+import {ImageRequest} from '../util/image_request.ts';
 
-import {ResourceType} from '../util/request_manager';
-import {Event, ErrorEvent, Evented} from '../util/evented';
-import {loadTileJson} from './load_tilejson';
-import {TileBounds} from '../tile/tile_bounds';
-import {Texture} from '../render/texture';
-import {isAbortError} from '../util/abort_error';
+import {ResourceType} from '../util/request_manager.ts';
+import {Event, ErrorEvent, Evented} from '../util/evented.ts';
+import {loadTileJson} from './load_tilejson.ts';
+import {TileBounds} from '../tile/tile_bounds.ts';
+import {Texture} from '../webgl/texture.ts';
+import {isAbortError} from '../util/abort_error.ts';
 
-import type {Source} from './source';
-import type {OverscaledTileID} from '../tile/tile_id';
-import type {Map} from '../ui/map';
-import type {Dispatcher} from '../util/dispatcher';
-import type {Tile} from '../tile/tile';
+import type {Source} from './source.ts';
+import type {OverscaledTileID} from '../tile/tile_id.ts';
+import type {Map} from '../ui/map.ts';
+import type {Dispatcher} from '../util/dispatcher.ts';
+import type {Tile} from '../tile/tile.ts';
 import type {
     RasterSourceSpecification,
     RasterDEMSourceSpecification
@@ -64,7 +64,7 @@ export class RasterTileSource extends Evented implements Source {
     roundZoom: boolean;
     dispatcher: Dispatcher;
     map: Map;
-    tiles: Array<string>;
+    tiles: string[];
 
     _loaded: boolean;
     _options: RasterSourceSpecification | RasterDEMSourceSpecification;
@@ -88,7 +88,7 @@ export class RasterTileSource extends Evented implements Source {
         extend(this, pick(options, ['url', 'scheme', 'tileSize']));
     }
 
-    async load(sourceDataChanged: boolean = false) {
+    async load(sourceDataChanged: boolean = false): Promise<void> {
         this._loaded = false;
         this.fire(new Event('dataloading', {dataType: 'source'}));
         this._tileJSONRequest = new AbortController();
@@ -112,7 +112,7 @@ export class RasterTileSource extends Evented implements Source {
 
             // only fire error event if it is not due to aborting the request
             if (!isAbortError(err)) {
-                this.fire(new ErrorEvent(err));
+                this.fire(new ErrorEvent(ensureError(err)));
             }
         }
     }
@@ -121,19 +121,19 @@ export class RasterTileSource extends Evented implements Source {
         return this._loaded;
     }
 
-    onAdd(map: Map) {
+    onAdd(map: Map): void {
         this.map = map;
         this.load();
     }
 
-    onRemove() {
+    onRemove(): void {
         if (this._tileJSONRequest) {
             this._tileJSONRequest.abort();
             this._tileJSONRequest = null;
         }
     }
 
-    setSourceProperty(callback: Function) {
+    setSourceProperty(callback: Function): void {
         if (this._tileJSONRequest) {
             this._tileJSONRequest.abort();
             this._tileJSONRequest = null;
@@ -149,7 +149,7 @@ export class RasterTileSource extends Evented implements Source {
      *
      * @param tiles - An array of one or more tile source URLs, as in the raster tiles spec (See the [Style Specification](https://maplibre.org/maplibre-style-spec/)
      */
-    setTiles(tiles: Array<string>): this {
+    setTiles(tiles: string[]): this {
         this.setSourceProperty(() => {
             this._options.tiles = tiles;
         });
@@ -171,11 +171,11 @@ export class RasterTileSource extends Evented implements Source {
         return this;
     }
 
-    serialize() {
+    serialize(): RasterSourceSpecification | RasterDEMSourceSpecification {
         return extend({}, this._options);
     }
 
-    hasTile(tileID: OverscaledTileID) {
+    hasTile(tileID: OverscaledTileID): boolean {
         return !this.tileBounds || this.tileBounds.contains(tileID.canonical);
     }
 
@@ -189,7 +189,7 @@ export class RasterTileSource extends Evented implements Source {
                 tile.state = 'unloaded';
                 return;
             }
-            if (response && response.data) {
+            if (response?.data) {
                 if (this.map._refreshExpiredTiles && (response.cacheControl || response.expires)) {
                     tile.setExpiryData({cacheControl: response.cacheControl, expires: response.expires});
                 }
@@ -216,20 +216,20 @@ export class RasterTileSource extends Evented implements Source {
         }
     }
 
-    async abortTile(tile: Tile) {
+    async abortTile(tile: Tile): Promise<void> {
         if (tile.abortController) {
             tile.abortController.abort();
             delete tile.abortController;
         }
     }
 
-    async unloadTile(tile: Tile) {
+    async unloadTile(tile: Tile): Promise<void> {
         if (tile.texture) {
             this.map.painter.saveTileTexture(tile.texture);
         }
     }
 
-    hasTransition() {
+    hasTransition(): boolean {
         return false;
     }
 }

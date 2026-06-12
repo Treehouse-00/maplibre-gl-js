@@ -7,7 +7,7 @@ type ScaleReturnValue = {
 };
 
 export class DOM {
-    private static readonly docStyle = typeof window !== 'undefined' && window.document && window.document.documentElement.style;
+    private static readonly docStyle = typeof window !== 'undefined' && window.document?.documentElement.style;
 
     private static userSelect: string;
 
@@ -20,19 +20,18 @@ export class DOM {
         return el;
     }
 
-    public static createNS(namespaceURI: string, tagName: string) {
-        const el = window.document.createElementNS(namespaceURI, tagName);
-        return el;
+    public static createNS(namespaceURI: string, tagName: string): Element {
+        return window.document.createElementNS(namespaceURI, tagName);
     }
 
-    public static disableDrag() {
+    public static disableDrag(): void {
         if (DOM.docStyle && DOM.selectProp) {
             DOM.userSelect = DOM.docStyle[DOM.selectProp];
             DOM.docStyle[DOM.selectProp] = 'none';
         }
     }
 
-    public static enableDrag() {
+    public static enableDrag(): void {
         if (DOM.docStyle && DOM.selectProp) {
             DOM.docStyle[DOM.selectProp] = DOM.userSelect;
         }
@@ -45,7 +44,7 @@ export class DOM {
         window.removeEventListener('click', DOM.suppressClickInternal, true);
     }
 
-    public static suppressClick() {
+    public static suppressClick(): void {
         window.addEventListener('click', DOM.suppressClickInternal, true);
         window.setTimeout(() => {
             window.removeEventListener('click', DOM.suppressClickInternal, true);
@@ -76,11 +75,11 @@ export class DOM {
         return DOM.getPoint(el, scale, e);
     }
 
-    public static touchPos(el: HTMLElement, touches: TouchList) {
+    public static touchPos(el: HTMLElement, touches: TouchList): Point[] {
         const points: Point[] = [];
         const scale = DOM.getScale(el);
-        for (let i = 0; i < touches.length; i++) {
-            points.push(DOM.getPoint(el, scale, touches[i]));
+        for (const touch of touches) {
+            points.push(DOM.getPoint(el, scale, touch));
         }
         return points;
     }

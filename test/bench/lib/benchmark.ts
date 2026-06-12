@@ -1,17 +1,21 @@
-import type {Map} from "../../../src/ui/map"
+import type {Map} from '../../../src/ui/map.ts';
 
 // According to https://developer.mozilla.org/en-US/docs/Web/API/Performance/now,
 // performance.now() should be accurate to 0.005ms. Set the minimum running
 // time for a single measurement at 5ms, so that the error due to timer
 // precision is < 0.1%.
-const minTimeForMeasurement = 0.005 * 1000;
+const minTimeForMeasurement = 0.02 * 1000;
 
 export type Measurement = {
     iterations: number;
     time: number;
 };
 
-class Benchmark {
+export interface BenchmarkLike {
+    run(): Promise<Measurement[]>;
+}
+
+class Benchmark implements BenchmarkLike {
     /**
      * The `setup` method is intended to be overridden by subclasses. It will be called once, prior to
      * running any benchmark iterations, and may set state on `this` which the benchmark later accesses.
@@ -42,7 +46,7 @@ class Benchmark {
     public minimumMeasurements = 210;
 
     _elapsed: number;
-    _measurements: Array<Measurement>;
+    _measurements: Measurement[];
     _iterationsPerMeasurement: number;
     _start: number;
 
@@ -50,7 +54,7 @@ class Benchmark {
      * Run the benchmark by executing `setup` once, sampling the execution time of `bench` some number of
      * times, and then executing `teardown`. Yields an array of execution times.
      */
-    async run(): Promise<Array<Measurement>> {
+    async run(): Promise<Measurement[]> {
         try {
             await this.setup();
             return this._begin();
@@ -64,7 +68,7 @@ class Benchmark {
         return this._elapsed >= 500 && this._measurements.length > this.minimumMeasurements;
     }
 
-    private _begin(): Promise<Array<Measurement>> {
+    private _begin(): Promise<Measurement[]> {
         this._measurements = [];
         this._elapsed = 0;
         this._iterationsPerMeasurement = 1;
@@ -78,13 +82,14 @@ class Benchmark {
         }
     }
 
-    private _measureSync(): Promise<Array<Measurement>> {
+    private _measureSync(): Promise<Measurement[]> {
         // Avoid Promise overhead for sync benchmarks.
         while (true) {
             const time = performance.now() - this._start;
             this._elapsed += time;
             if (time < minTimeForMeasurement) {
                 this._iterationsPerMeasurement++;
+                this._iterationsPerMeasurement = Math.floor(this._iterationsPerMeasurement * 1.2);
             } else {
                 this._measurements.push({time, iterations: this._iterationsPerMeasurement});
             }
@@ -98,12 +103,13 @@ class Benchmark {
         }
     }
 
-    private async _measureAsync(): Promise<Array<Measurement>> {
+    private async _measureAsync(): Promise<Measurement[]> {
         while (true) {
             const time = performance.now() - this._start;
             this._elapsed += time;
             if (time < minTimeForMeasurement) {
                 this._iterationsPerMeasurement++;
+                this._iterationsPerMeasurement = Math.floor(this._iterationsPerMeasurement * 1.2);
             } else {
                 this._measurements.push({time, iterations: this._iterationsPerMeasurement});
             }
@@ -117,7 +123,7 @@ class Benchmark {
         }
     }
 
-    private async _end(): Promise<Array<Measurement>> {
+    private async _end(): Promise<Measurement[]> {
         await this.teardown();
         return this._measurements;
     }
@@ -129,7 +135,7 @@ class Benchmark {
      * configurations (e.g. SwiftShader), so we also read a pixel to
      * force the driver to complete all rendering.
      */
-    public static renderMap(map: Map, paintStartTimeStamp?: number) {
+    public static renderMap(map: Map, paintStartTimeStamp?: number): void {
         map._render(paintStartTimeStamp);
         const gl = map.painter.context.gl;
         gl.finish();

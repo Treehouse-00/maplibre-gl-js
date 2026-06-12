@@ -1,10 +1,10 @@
-import {getArrayBuffer} from '../util/ajax';
-import {ResourceType} from '../util/request_manager';
+import {getArrayBuffer} from '../util/ajax.ts';
+import {ResourceType} from '../util/request_manager.ts';
 
-import {parseGlyphPbf} from './parse_glyph_pbf';
+import {parseGlyphPbf} from './parse_glyph_pbf.ts';
 
-import type {StyleGlyph} from './style_glyph';
-import type {RequestManager} from '../util/request_manager';
+import type {StyleGlyph} from './style_glyph.ts';
+import type {RequestManager} from '../util/request_manager.ts';
 
 export async function loadGlyphRange(fontstack: string,
     range: number,
@@ -19,7 +19,7 @@ export async function loadGlyphRange(fontstack: string,
     );
 
     const response = await getArrayBuffer(request, new AbortController());
-    if (!response || !response.data) {
+    if (!response?.data) {
         throw new Error(`Could not load glyph range. range: ${range}, ${begin}-${end}`);
     }
     const glyphs = {};

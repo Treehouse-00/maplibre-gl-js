@@ -1,7 +1,8 @@
 
-import Benchmark from '../lib/benchmark';
-import createMap from '../lib/create_map';
+import Benchmark from '../lib/benchmark.ts';
+import createMap from '../lib/create_map.ts';
 import style from '../data/empty.json' with {type: 'json'};
+import type {SymbolLayerSpecification} from '@maplibre/maplibre-gl-style-spec';
 
 const width = 1024;
 const height = 768;
@@ -21,7 +22,7 @@ export class LayerBenchmark extends Benchmark {
     layerStyle: any;
     map: any;
 
-    async setup() {
+    async setup(): Promise<void> {
         try {
             this.map = await createMap({
                 zoom: 16,
@@ -35,11 +36,11 @@ export class LayerBenchmark extends Benchmark {
         }
     }
 
-    bench() {
+    bench(): void {
         Benchmark.renderMap(this.map);
     }
 
-    teardown() {
+    teardown(): void {
         this.map.remove();
     }
 }
@@ -110,7 +111,7 @@ export class LayerFillExtrusion extends LayerBenchmark {
 }
 
 export class LayerHeatmap extends LayerBenchmark {
-    async setup() {
+    async setup(): Promise<void> {
         const response = await fetch('/test/bench/data/naturalearth-land.json');
         const data = await response.json();
         this.layerStyle = Object.assign({}, style, {
@@ -157,7 +158,7 @@ export class LayerHillshade extends LayerBenchmark {
             sources: {
                 'terrain-rgb': {
                     'type': 'raster-dem',
-                    'url': 'https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL'
+                    'url': 'https://tiles.mapterhorn.com/tilejson.json'
                 }
             },
             layers: generateLayers({
@@ -177,7 +178,7 @@ export class LayerColorRelief2Colors extends LayerBenchmark {
             sources: {
                 'terrain-rgb': {
                     'type': 'raster-dem',
-                    'url': 'https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL'
+                    'url': 'https://tiles.mapterhorn.com/tilejson.json'
                 }
             },
             layers: generateLayers({
@@ -186,9 +187,9 @@ export class LayerColorRelief2Colors extends LayerBenchmark {
                 'source': 'terrain-rgb',
                 'paint': {
                     'color-relief-color': [
-                        "interpolate",
-                        ["linear"],
-                        ["elevation"],
+                        'interpolate',
+                        ['linear'],
+                        ['elevation'],
                         0, 'rgb(112, 209, 255)',
                         3724, 'rgb(255, 178, 129)'
                     ]
@@ -202,7 +203,7 @@ export class LayerColorRelief256Colors extends LayerBenchmark {
     constructor() {
         super();
 
-        const colorSpec: any[] = ["interpolate", ["linear"], ["elevation"]];
+        const colorSpec: any[] = ['interpolate', ['linear'], ['elevation']];
         for (let i = 0; i < 256; i++) {
             colorSpec.push(i);
             colorSpec.push(`rgb(${i}, 0, ${255-i})`);
@@ -212,7 +213,7 @@ export class LayerColorRelief256Colors extends LayerBenchmark {
             sources: {
                 'terrain-rgb': {
                     'type': 'raster-dem',
-                    'url': 'https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL'
+                    'url': 'https://tiles.mapterhorn.com/tilejson.json'
                 }
             },
             layers: generateLayers({
@@ -282,6 +283,31 @@ export class LayerSymbol extends LayerBenchmark {
     }
 }
 
+export class LayerSymbolWithHalo extends LayerBenchmark {
+    constructor() {
+        super();
+
+        this.layerStyle = Object.assign({}, style, {
+            layers: generateLayers({
+                'id': 'symbollayer',
+                'type': 'symbol',
+                'source': 'openmaptiles',
+                'source-layer': 'poi',
+                'layout': {
+                    'icon-image': 'dot_11',
+                    'text-field': '{name_en}'
+                },
+                'paint': {
+                    'text-color': '#000000',
+                    'text-halo-color': '#ff0000',
+                    'text-halo-width': 2,
+                    'text-halo-blur': 1
+                }
+            })
+        });
+    }
+}
+
 export class LayerSymbolWithIcons extends LayerBenchmark {
     constructor() {
         super();
@@ -310,8 +336,8 @@ export class LayerSymbolWithSortKey extends LayerBenchmark {
         });
     }
 
-    generateSortKeyLayers() {
-        const generated = [];
+    generateSortKeyLayers(): SymbolLayerSpecification[] {
+        const generated: SymbolLayerSpecification[] = [];
         for (let i = 0; i < layerCount; i++) {
             generated.push({
                 'id': `symbollayer${i}`,

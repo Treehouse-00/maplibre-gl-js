@@ -1,22 +1,21 @@
-import {getJSON} from '../util/ajax';
-import {RequestPerformance} from '../util/request_performance';
-import {GeoJSONWrapper} from '@maplibre/vt-pbf';
-import {EXTENT} from '../data/extent';
+import {getJSON} from '../util/ajax.ts';
+import {RequestPerformance} from '../util/request_performance.ts';
+import {fromVectorTileJs, GeoJSONWrapper} from '@maplibre/vt-pbf';
+import {EXTENT} from '../data/extent.ts';
 import {GeoJSONVT, type GeoJSONVTOptions} from '@maplibre/geojson-vt';
 import {createExpression, type FilterSpecification} from '@maplibre/maplibre-gl-style-spec';
-import {isAbortError} from '../util/abort_error';
-import {toVirtualVectorTile} from './vector_tile_overzoomed';
-import {WorkerTile} from './worker_tile';
-import {WorkerTileState, type ParsingState} from './worker_tile_state';
-import {extend} from '../util/util';
+import {isAbortError} from '../util/abort_error.ts';
+import {WorkerTile} from './worker_tile.ts';
+import {WorkerTileState, type ParsingState} from './worker_tile_state.ts';
+import {extend, JSON_PREFIX} from '../util/util.ts';
 
-import type {GeoJSONSourceDiff} from './geojson_source_diff';
-import type {WorkerSource, WorkerTileParameters, TileParameters, WorkerTileResult} from './worker_source';
-import type {LoadVectorTileResult} from './vector_tile_worker_source';
-import type {RequestParameters} from '../util/ajax';
-import type {ClusterIDAndSource, GeoJSONWorkerSourceLoadDataResult, RemoveSourceParams} from '../util/actor_messages';
-import type {IActor} from '../util/actor';
-import type {StyleLayerIndex} from '../style/style_layer_index';
+import type {GeoJSONSourceDiff} from './geojson_source_diff.ts';
+import type {WorkerSource, WorkerTileParameters, TileParameters, WorkerTileResult} from './worker_source.ts';
+import type {LoadVectorTileResult} from './vector_tile_worker_source.ts';
+import type {RequestParameters} from '../util/ajax.ts';
+import type {ClusterIDAndSource, GeoJSONWorkerSourceLoadDataResult, RemoveSourceParams} from '../util/actor_messages.ts';
+import type {IActor} from '../util/actor.ts';
+import type {StyleLayerIndex} from '../style/style_layer_index.ts';
 
 /**
  * The geojson worker options that can be passed to the worker
@@ -63,14 +62,14 @@ export type LoadGeoJSONParameters = GeoJSONWorkerOptions & {
 export class GeoJSONWorkerSource implements WorkerSource {
     actor: IActor;
     layerIndex: StyleLayerIndex;
-    availableImages: Array<string>;
+    availableImages: string[];
     tileState: WorkerTileState;
 
     _pendingRequest: AbortController;
     _geoJSONIndex: GeoJSONVT;
     _createGeoJSONIndex: typeof createGeoJSONIndex;
 
-    constructor(actor: IActor, layerIndex: StyleLayerIndex, availableImages: Array<string>, createGeoJSONIndexFunc: typeof createGeoJSONIndex = createGeoJSONIndex) {
+    constructor(actor: IActor, layerIndex: StyleLayerIndex, availableImages: string[], createGeoJSONIndexFunc: typeof createGeoJSONIndex = createGeoJSONIndex) {
         this.actor = actor;
         this.layerIndex = layerIndex;
         this.availableImages = availableImages;
@@ -89,7 +88,11 @@ export class GeoJSONWorkerSource implements WorkerSource {
         if (!geoJSONTile) return null;
 
         const geojsonWrapper = new GeoJSONWrapper(geoJSONTile.features, {version: 2, extent: EXTENT});
-        return toVirtualVectorTile(geojsonWrapper);
+        return {
+            vectorTile: geojsonWrapper,
+            rawData: fromVectorTileJs(geojsonWrapper, JSON_PREFIX).buffer
+        };
+
     }
 
     /**
@@ -281,7 +284,7 @@ export class GeoJSONWorkerSource implements WorkerSource {
      */
     _filterGeoJSON(data: GeoJSON.GeoJSON, filter: FilterSpecification): GeoJSON.GeoJSON {
         if (data.type !== 'FeatureCollection') return data;
-        
+
         const predicate = this._getFilterPredicate(filter);
         if (!predicate) return data;
 
@@ -298,9 +301,8 @@ export class GeoJSONWorkerSource implements WorkerSource {
         if (compiled.result === 'error') {
             throw new Error(compiled.value.map(err => `${err.key}: ${err.message}`).join(', '));
         }
-        
-        const predicate = (feature: GeoJSON.Feature) => compiled.value.evaluate({zoom: 0}, feature as any);
-        return predicate;
+
+        return (feature: GeoJSON.Feature) => compiled.value.evaluate({zoom: 0}, feature as any);
     }
 
     async removeSource(_params: RemoveSourceParams): Promise<void> {
@@ -311,7 +313,7 @@ export class GeoJSONWorkerSource implements WorkerSource {
         return this._geoJSONIndex.getClusterExpansionZoom(params.clusterId);
     }
 
-    getClusterChildren(params: ClusterIDAndSource): Array<GeoJSON.Feature> {
+    getClusterChildren(params: ClusterIDAndSource): GeoJSON.Feature[] {
         return this._geoJSONIndex.getClusterChildren(params.clusterId);
     }
 
@@ -319,7 +321,7 @@ export class GeoJSONWorkerSource implements WorkerSource {
         clusterId: number;
         limit: number;
         offset: number;
-    }): Array<GeoJSON.Feature> {
+    }): GeoJSON.Feature[] {
         return this._geoJSONIndex.getClusterLeaves(params.clusterId, params.limit, params.offset);
     }
 }

@@ -1,12 +1,12 @@
 import {describe, beforeEach, afterEach, test, expect, vi, it} from 'vitest';
-import {RasterTileSource} from './raster_tile_source';
-import {OverscaledTileID} from '../tile/tile_id';
-import {RequestManager} from '../util/request_manager';
-import {type Dispatcher} from '../util/dispatcher';
+import {RasterTileSource} from './raster_tile_source.ts';
+import {OverscaledTileID} from '../tile/tile_id.ts';
+import {RequestManager} from '../util/request_manager.ts';
+import {type Dispatcher} from '../util/dispatcher.ts';
 import {fakeServer, type FakeServer} from 'nise';
-import {type Tile} from '../tile/tile';
-import {sleep, stubAjaxGetImage, waitForEvent} from '../util/test/util';
-import {type MapSourceDataEvent} from '../ui/events';
+import {type Tile} from '../tile/tile.ts';
+import {sleep, stubAjaxGetImage, waitForEvent} from '../util/test/util.ts';
+import {type MapSourceDataEvent} from '../ui/events.ts';
 
 function createSource(options, transformCallback?) {
     const source = new RasterTileSource('id', options, {send() {}} as any as Dispatcher, options.eventedParent);
@@ -169,7 +169,7 @@ describe('RasterTileSource', () => {
             url,
             headers: {Authorization: 'Bearer token'}
         }));
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         await waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');
 
         const tile = {
@@ -197,7 +197,7 @@ describe('RasterTileSource', () => {
             bounds: [-47, -7, -45, -5]
         }));
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = false;
 
         const imageConstructorSpy = vi.spyOn(global, 'Image');
@@ -289,7 +289,7 @@ describe('RasterTileSource', () => {
             [200, {'Content-Type': 'image/png', 'Content-Length': 1, 'Cache-Control': 'max-age=100'}, '0']
         );
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = true;
 
         const promise = waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');
@@ -322,7 +322,7 @@ describe('RasterTileSource', () => {
             [200, {'Content-Type': 'image/png', 'Content-Length': 1, 'Expires': 'Wed, 21 Oct 2015 07:28:00 GMT'}, '0']
         );
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = true;
 
         const promise = waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');
@@ -355,7 +355,7 @@ describe('RasterTileSource', () => {
             [200, {'Content-Type': 'image/png', 'Content-Length': 1, 'Cache-Control': '', 'Expires': 'Wed, 21 Oct 2015 07:28:00 GMT'}, '0']
         );
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = true;
 
         const promise = waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');

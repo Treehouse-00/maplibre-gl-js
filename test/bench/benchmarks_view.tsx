@@ -1,9 +1,10 @@
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 
-import {BenchmarksTable} from './components/BenchmarkTable';
-import {summaryStatistics, regression, Summary} from './lib/statistics';
-import type {BenchmarkRowProps} from './components/BenchmarkRow';
+import {BenchmarksTable} from './components/BenchmarkTable.tsx';
+import {summaryStatistics, regression, Summary} from './lib/statistics.ts';
+import {ensureError} from '../../src/util/util.ts';
+import type {BenchmarkRowProps} from './components/BenchmarkRow.tsx';
 
 function updateUI(benchmarks: BenchmarkRowProps[], finished?: boolean) {
     finished = !!finished;
@@ -11,7 +12,7 @@ function updateUI(benchmarks: BenchmarkRowProps[], finished?: boolean) {
     root.render(<BenchmarksTable benchmarks={benchmarks} finished={finished}/>);
 }
 
-export async function run(benchmarks: BenchmarkRowProps[]) {
+export async function run(benchmarks: BenchmarkRowProps[]): Promise<BenchmarkRowProps[]> {
     const filter = window.location.hash.substr(1);
     if (filter) benchmarks = benchmarks.filter(({name}) => name === filter);
 
@@ -42,7 +43,7 @@ export async function run(benchmarks: BenchmarkRowProps[]) {
                 updateUI(benchmarks);
             } catch (error) {
                 version.status = 'errored';
-                version.error = error;
+                version.error = ensureError(error);
                 updateUI(benchmarks);
             }
         }

@@ -1,6 +1,6 @@
 import {describe, beforeEach, test, expect, vi} from 'vitest';
-import {createMap, beforeMapTest} from '../../util/test/util';
-import {FullscreenControl} from './fullscreen_control';
+import {createMap, beforeMapTest} from '../../util/test/util.ts';
+import {FullscreenControl} from './fullscreen_control.ts';
 
 beforeEach(() => {
     beforeMapTest();
@@ -26,7 +26,7 @@ describe('FullscreenControl', () => {
         });
 
         const map = createMap();
-        const container = window.document.querySelector('body')!;
+        const container = window.document.querySelector('body');
         const fullscreen = new FullscreenControl({container});
         map.addControl(fullscreen);
 
@@ -156,7 +156,7 @@ describe('FullscreenControl', () => {
 
     test('pseudo fullscreen can be used on custom container', () => {
         const map = createMap();
-        const container = window.document.querySelector('body')!;
+        const container = window.document.querySelector('body');
 
         // Ensure container is clean before test
         container.classList.remove('maplibregl-pseudo-fullscreen');

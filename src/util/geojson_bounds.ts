@@ -1,4 +1,4 @@
-import {LngLatBounds} from '../geo/lng_lat_bounds';
+import {LngLatBounds} from '../geo/lng_lat_bounds.ts';
 
 type DeepCoordinates = GeoJSON.Position | DeepCoordinates[];
 
@@ -45,8 +45,8 @@ export function getGeoJSONBounds(data: GeoJSON.GeoJSON): LngLatBounds {
         return bounds;
     }
 
-    for (let i = 0; i < coordinates.length; i++) {
-        const [lng, lat] = coordinates[i];
+    for (const coordinate of coordinates) {
+        const [lng, lat] = coordinate;
 
         bounds.extend([lng, lat]);
     }

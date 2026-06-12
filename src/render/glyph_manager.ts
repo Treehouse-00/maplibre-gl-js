@@ -1,13 +1,13 @@
-import {loadGlyphRange} from '../style/load_glyph_range';
+import {loadGlyphRange} from '../style/load_glyph_range.ts';
 
 import TinySDF from '@mapbox/tiny-sdf';
-import {codePointUsesLocalIdeographFontFamily} from '../util/unicode_properties.g';
-import {AlphaImage} from '../util/image';
-import {warnOnce} from '../util/util';
+import {codePointUsesLocalIdeographFontFamily} from '../util/unicode_properties.g.ts';
+import {AlphaImage} from '../util/image.ts';
+import {ensureError, warnOnce} from '../util/util.ts';
 
-import type {StyleGlyph} from '../style/style_glyph';
-import type {RequestManager} from '../util/request_manager';
-import type {GetGlyphsResponse} from '../util/actor_messages';
+import type {StyleGlyph} from '../style/style_glyph.ts';
+import type {RequestManager} from '../util/request_manager.ts';
+import type {GetGlyphsResponse} from '../util/actor_messages.ts';
 
 import {v8} from '@maplibre/maplibre-gl-style-spec';
 
@@ -50,8 +50,8 @@ export class GlyphManager {
     lang?: string;
 
     // exposed as statistics to enable stubbing in unit tests
-    static loadGlyphRange = loadGlyphRange;
-    static TinySDF = TinySDF;
+    static loadGlyphRange: typeof loadGlyphRange = loadGlyphRange;
+    static TinySDF: typeof TinySDF = TinySDF;
 
     constructor(requestManager: RequestManager, localIdeographFontFamily?: string | false, lang?: string) {
         this.requestManager = requestManager;
@@ -60,12 +60,12 @@ export class GlyphManager {
         this.lang = lang;
     }
 
-    setURL(url?: string | null) {
+    setURL(url?: string | null): void {
         this.url = url;
     }
 
-    async getGlyphs(glyphs: {[stack: string]: Array<number>}): Promise<GetGlyphsResponse> {
-        const glyphsPromises: Promise<{stack: string; id: number; glyph: StyleGlyph}>[] = [];
+    async getGlyphs(glyphs: {[stack: string]: number[]}): Promise<GetGlyphsResponse> {
+        const glyphsPromises: Array<Promise<{stack: string; id: number; glyph: StyleGlyph}>> = [];
 
         for (const stack in glyphs) {
             for (const id of glyphs[stack]) {
@@ -78,9 +78,7 @@ export class GlyphManager {
         const result: GetGlyphsResponse = {};
 
         for (const {stack, id, glyph} of updatedGlyphs) {
-            if (!result[stack]) {
-                result[stack] = {};
-            }
+            result[stack] ||= {};
             // Clone the glyph so that our own copy of its ArrayBuffer doesn't get transferred.
             result[stack][id] = glyph && {
                 id: glyph.id,
@@ -94,14 +92,8 @@ export class GlyphManager {
 
     async _getAndCacheGlyphsPromise(stack: string, id: number): Promise<{stack: string; id: number; glyph: StyleGlyph}> {
         // Create an entry for this fontstack if it doesn’t already exist.
-        let entry = this.entries[stack];
-        if (!entry) {
-            entry = this.entries[stack] = {
-                glyphs: {},
-                requests: {},
-                ranges: {}
-            };
-        }
+        this.entries[stack] ??= {glyphs: {}, requests: {}, ranges: {}};
+        const entry = this.entries[stack];
 
         // Try to get the glyph from the cache of client-side glyphs by codepoint.
         let glyph = entry.glyphs[id];
@@ -127,10 +119,7 @@ export class GlyphManager {
         }
 
         // Start downloading this range unless we’re currently downloading it.
-        if (!entry.requests[range]) {
-            const promise = GlyphManager.loadGlyphRange(stack, range, this.url, this.requestManager);
-            entry.requests[range] = promise;
-        }
+        entry.requests[range] ||= GlyphManager.loadGlyphRange(stack, range, this.url, this.requestManager);
 
         try {
             // Get the response and cache the glyphs from it.
@@ -143,12 +132,12 @@ export class GlyphManager {
         } catch (e) {
             // Fall back to drawing the glyph locally and caching it.
             const glyph = entry.glyphs[id] = this._drawGlyph(entry, stack, id);
-            this._warnOnMissingGlyphRange(glyph, range, id, e);
+            this._warnOnMissingGlyphRange(glyph, range, id, ensureError(e));
             return {stack, id, glyph};
         }
     }
 
-    _warnOnMissingGlyphRange(glyph: StyleGlyph, range: number, id: number, err: Error) {
+    _warnOnMissingGlyphRange(glyph: StyleGlyph, range: number, id: number, err: Error): void {
         const begin = range * 256;
         const end = begin + 255;
         const codePoint = id.toString(16).padStart(4, '0').toUpperCase();
@@ -221,7 +210,7 @@ export class GlyphManager {
             buffer: 3 * textureScale,
             radius: 8 * textureScale,
             cutoff: 0.25,
-            fontFamily: fontFamily,
+            fontFamily,
             fontWeight: this._fontWeight(fontFamilies[0]),
             fontStyle: this._fontStyle(fontFamilies[0]),
             lang: this.lang
@@ -267,15 +256,11 @@ export class GlyphManager {
         return match;
     }
 
-    destroy() {
+    destroy(): void {
         for (const stack in this.entries) {
             const entry = this.entries[stack];
-            if (entry.tinySDF) {
-                entry.tinySDF = null;
-            }
-            if (entry.ideographTinySDF) {
-                entry.ideographTinySDF = null;
-            }
+            entry.tinySDF = null;
+            entry.ideographTinySDF = null;
             entry.glyphs = {};
             entry.requests = {};
             entry.ranges = {};

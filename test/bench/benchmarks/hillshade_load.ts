@@ -1,5 +1,5 @@
-import Benchmark from '../lib/benchmark';
-import createMap from '../lib/create_map';
+import Benchmark from '../lib/benchmark.ts';
+import createMap from '../lib/create_map.ts';
 import type {StyleSpecification} from '@maplibre/maplibre-gl-style-spec';
 
 /**
@@ -25,7 +25,7 @@ export default class HillshadeLoad extends Benchmark {
             'pitch': 0,
             'sources': {
                 'terrain-rgb': {
-                    'url': 'https://api.maptiler.com/tiles/terrain-rgb/tiles.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL',
+                    'url': 'https://tiles.mapterhorn.com/tilejson.json',
                     'type': 'raster-dem',
                     'tileSize': 256
                 }
@@ -42,7 +42,7 @@ export default class HillshadeLoad extends Benchmark {
         };
     }
 
-    async bench() {
+    async bench(): Promise<void> {
         const map = await createMap({
             width: 1024,
             height: 1024,

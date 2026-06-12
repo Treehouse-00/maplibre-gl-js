@@ -1,11 +1,11 @@
 import {beforeAll, describe, test, expect} from 'vitest';
-import {FillExtrusionBucket} from './fill_extrusion_bucket';
-import {FillExtrusionStyleLayer} from '../../style/style_layer/fill_extrusion_style_layer';
+import {FillExtrusionBucket} from './fill_extrusion_bucket.ts';
+import {FillExtrusionStyleLayer} from '../../style/style_layer/fill_extrusion_style_layer.ts';
 import {type LayerSpecification} from '@maplibre/maplibre-gl-style-spec';
-import {type EvaluationParameters} from '../../style/evaluation_parameters';
-import {type ZoomHistory} from '../../style/zoom_history';
-import {type BucketParameters} from '../bucket';
-import {type CreateBucketParameters, createPopulateOptions, getFeaturesFromLayer, loadVectorTile} from '../../../test/unit/lib/tile';
+import {type EvaluationParameters} from '../../style/evaluation_parameters.ts';
+import {type ZoomHistory} from '../../style/zoom_history.ts';
+import {type BucketParameters} from '../bucket.ts';
+import {type CreateBucketParameters, createPopulateOptions, getFeaturesFromLayer, loadVectorTile} from '../../../test/unit/lib/tile.ts';
 import {type VectorTileLayerLike} from '@maplibre/vt-pbf';
 
 function createFillExtrusionBucket({id, layout, paint, globalState, availableImages}: CreateBucketParameters): FillExtrusionBucket {
@@ -16,7 +16,7 @@ function createFillExtrusionBucket({id, layout, paint, globalState, availableIma
         paint
     } as LayerSpecification, globalState);
     layer.recalculate({zoom: 0, zoomHistory: {} as ZoomHistory} as EvaluationParameters,
-        availableImages as Array<string>);
+        availableImages);
 
     return new FillExtrusionBucket({layers: [layer]} as BucketParameters<FillExtrusionStyleLayer>);
 }

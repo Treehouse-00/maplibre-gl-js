@@ -1,14 +1,14 @@
-import {Event} from '../util/evented';
+import {Event} from '../util/evented.ts';
 
-import {DOM} from '../util/dom';
+import {DOM} from '../util/dom.ts';
 import Point from '@mapbox/point-geometry';
-import {extend} from '../util/util';
-import type {MapGeoJSONFeature} from '../util/vectortile_to_geojson';
+import {extend} from '../util/util.ts';
+import type {MapGeoJSONFeature} from '../util/vectortile_to_geojson.ts';
 
-import type {Map} from './map';
-import type {LngLat} from '../geo/lng_lat';
+import type {Map} from './map.ts';
+import type {LngLat} from '../geo/lng_lat.ts';
 import type {ProjectionSpecification, SourceSpecification} from '@maplibre/maplibre-gl-style-spec';
-import {type GeoJSONSourceShouldReloadTileOptions} from '../source/geojson_source';
+import {type GeoJSONSourceShouldReloadTileOptions} from '../source/geojson_source.ts';
 
 /**
  * An event from the mouse relevant to a specific layer.
@@ -149,7 +149,7 @@ export type MapLayerEventType = {
  * });
  * ```
  */
-export interface MapEventType {
+export type MapEventType = {
     /**
      * Fired when an error occurs. This is GL JS's primary error reporting
      * mechanism. We use an event instead of `throw` to better accommodate
@@ -532,7 +532,7 @@ export class MapMouseEvent extends Event implements MapLibreEvent<MouseEvent> {
      *   * On `dblclick` events, the behavior of {@link DoubleClickZoomHandler}
      *
      */
-    preventDefault() {
+    preventDefault(): void {
         this._defaultPrevented = true;
     }
 
@@ -591,13 +591,13 @@ export class MapTouchEvent extends Event implements MapLibreEvent<TouchEvent> {
      * The array of pixel coordinates corresponding to a
      * [touch event's `touches`](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent/touches) property.
      */
-    points: Array<Point>;
+    points: Point[];
 
     /**
      * The geographical locations on the map corresponding to a
      * [touch event's `touches`](https://developer.mozilla.org/en-US/docs/Web/API/TouchEvent/touches) property.
      */
-    lngLats: Array<LngLat>;
+    lngLats: LngLat[];
 
     /**
      * Prevents subsequent default processing of the event by the map.
@@ -608,7 +608,7 @@ export class MapTouchEvent extends Event implements MapLibreEvent<TouchEvent> {
      *   * On `touchstart` events, the behavior of {@link TwoFingersTouchZoomRotateHandler}
      *
      */
-    preventDefault() {
+    preventDefault(): void {
         this._defaultPrevented = true;
     }
 
@@ -660,7 +660,7 @@ export class MapWheelEvent extends Event {
      *
      * Calling this method will prevent the behavior of {@link ScrollZoomHandler}.
      */
-    preventDefault() {
+    preventDefault(): void {
         this._defaultPrevented = true;
     }
 

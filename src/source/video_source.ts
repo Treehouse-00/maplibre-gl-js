@@ -1,14 +1,15 @@
-import {getVideo} from '../util/ajax';
-import {ResourceType} from '../util/request_manager';
+import {getVideo} from '../util/ajax.ts';
+import {ResourceType} from '../util/request_manager.ts';
 
-import {ImageSource} from './image_source';
-import {Texture} from '../render/texture';
-import {Event, ErrorEvent} from '../util/evented';
+import {ImageSource} from './image_source.ts';
+import {Texture} from '../webgl/texture.ts';
+import {Event, ErrorEvent} from '../util/evented.ts';
+import {ensureError} from '../util/util.ts';
 import {ValidationError} from '@maplibre/maplibre-gl-style-spec';
 
-import type {Map} from '../ui/map';
-import type {Dispatcher} from '../util/dispatcher';
-import type {Evented} from '../util/evented';
+import type {Map} from '../ui/map.ts';
+import type {Dispatcher} from '../util/dispatcher.ts';
+import type {Evented} from '../util/evented.ts';
 import type {VideoSourceSpecification} from '@maplibre/maplibre-gl-style-spec';
 
 /**
@@ -53,7 +54,7 @@ import type {VideoSourceSpecification} from '@maplibre/maplibre-gl-style-spec';
  */
 export class VideoSource extends ImageSource {
     options: VideoSourceSpecification;
-    urls: Array<string>;
+    urls: string[];
     video: HTMLVideoElement;
     roundZoom: boolean;
 
@@ -68,7 +69,7 @@ export class VideoSource extends ImageSource {
         this.options = options;
     }
 
-    async load() {
+    async load(): Promise<void> {
         this._loaded = false;
         const options = this.options;
 
@@ -95,14 +96,14 @@ export class VideoSource extends ImageSource {
 
             this._finishLoading();
         } catch (err) {
-            this.fire(new ErrorEvent(err));
+            this.fire(new ErrorEvent(ensureError(err)));
         }
     }
 
     /**
      * Pauses the video.
      */
-    pause() {
+    pause(): void {
         if (this.video) {
             this.video.pause();
         }
@@ -111,7 +112,7 @@ export class VideoSource extends ImageSource {
     /**
      * Plays the video.
      */
-    play() {
+    play(): void {
         if (this.video) {
             this.video.play();
         }
@@ -120,7 +121,7 @@ export class VideoSource extends ImageSource {
     /**
      * Sets playback to a timestamp, in seconds.
      */
-    seek(seconds: number) {
+    seek(seconds: number): void {
         if (this.video) {
             const seekableRange = this.video.seekable;
             if (seconds < seekableRange.start(0) || seconds > seekableRange.end(0)) {
@@ -138,7 +139,7 @@ export class VideoSource extends ImageSource {
         return this.video;
     }
 
-    onAdd(map: Map) {
+    onAdd(map: Map): void {
         if (this.map) return;
         this.map = map;
         this.load();
@@ -148,7 +149,7 @@ export class VideoSource extends ImageSource {
         }
     }
 
-    onRemove() {
+    onRemove(): void {
         super.onRemove();
         if (this.video) {
             this.video.removeEventListener('playing', this._onPlayingHandler);
@@ -198,7 +199,7 @@ export class VideoSource extends ImageSource {
         };
     }
 
-    hasTransition() {
+    hasTransition(): boolean {
         return this.video && !this.video.paused;
     }
 }

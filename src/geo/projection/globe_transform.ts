@@ -1,22 +1,22 @@
 import type {mat2, mat4, vec3, vec4} from 'gl-matrix';
-import {TransformHelper} from '../transform_helper';
-import {MercatorTransform} from './mercator_transform';
-import {VerticalPerspectiveTransform} from './vertical_perspective_transform';
-import {type LngLat, type LngLatLike,} from '../lng_lat';
-import {lerp} from '../../util/util';
-import type {OverscaledTileID, UnwrappedTileID, CanonicalTileID} from '../../tile/tile_id';
+import {TransformHelper} from '../transform_helper.ts';
+import {MercatorTransform} from './mercator_transform.ts';
+import {VerticalPerspectiveTransform} from './vertical_perspective_transform.ts';
+import {type LngLat, type LngLatLike,} from '../lng_lat.ts';
+import {lerp} from '../../util/util.ts';
+import type {OverscaledTileID, UnwrappedTileID, CanonicalTileID} from '../../tile/tile_id.ts';
 
 import type Point from '@mapbox/point-geometry';
-import type {MercatorCoordinate} from '../mercator_coordinate';
-import type {LngLatBounds} from '../lng_lat_bounds';
-import type {Frustum} from '../../util/primitives/frustum';
-import type {Terrain} from '../../render/terrain';
-import type {PointProjection} from '../../symbol/projection';
-import type {IReadonlyTransform, ITransform, TransformConstrainFunction} from '../transform_interface';
-import type {TransformOptions} from '../transform_helper';
-import type {PaddingOptions} from '../edge_insets';
-import type {ProjectionData, ProjectionDataParams} from './projection_data';
-import type {CoveringTilesDetailsProvider} from './covering_tiles_details_provider';
+import type {MercatorCoordinate} from '../mercator_coordinate.ts';
+import type {LngLatBounds} from '../lng_lat_bounds.ts';
+import type {Frustum} from '../../util/primitives/frustum.ts';
+import type {Terrain} from '../../render/terrain.ts';
+import type {PointProjection} from '../../symbol/projection.ts';
+import type {IReadonlyTransform, ITransform, TransformConstrainFunction} from '../transform_interface.ts';
+import type {TransformOptions} from '../transform_helper.ts';
+import type {PaddingOptions} from '../edge_insets.ts';
+import type {ProjectionData, ProjectionDataParams} from './projection_data.ts';
+import type {CoveringTilesDetailsProvider} from './covering_tiles_details_provider.ts';
 
 /**
  * Globe transform is a transform that moves between vertical perspective and mercator projections.
@@ -95,7 +95,7 @@ export class GlobeTransform implements ITransform {
         this._helper.setPadding(padding);
     }
     interpolatePadding(start: PaddingOptions, target: PaddingOptions, t: number): void {
-        return this._helper.interpolatePadding(start, target, t);
+        this._helper.interpolatePadding(start, target, t);
     }
     isPaddingEqual(padding: PaddingOptions): boolean {
         return this._helper.isPaddingEqual(padding);
@@ -209,14 +209,14 @@ export class GlobeTransform implements ITransform {
     get constrainOverride(): TransformConstrainFunction {
         return this._helper.constrainOverride;
     }
-    public get nearZ(): number { 
-        return this._helper.nearZ; 
+    public get nearZ(): number {
+        return this._helper.nearZ;
     }
-    public get farZ(): number { 
-        return this._helper.farZ; 
+    public get farZ(): number {
+        return this._helper.farZ;
     }
-    public get autoCalculateNearFarZ(): boolean { 
-        return this._helper.autoCalculateNearFarZ; 
+    public get autoCalculateNearFarZ(): boolean {
+        return this._helper.autoCalculateNearFarZ;
     }
     //
     // Implementation of globe transform
@@ -255,7 +255,7 @@ export class GlobeTransform implements ITransform {
 
     public constructor(options?: TransformOptions) {
         this._helper = new TransformHelper({
-            calcMatrices: () => { this._calcMatrices(); },
+            calcMatrices: () => this._calcMatrices(),
             defaultConstrain: (center, zoom) => { return this.defaultConstrain(center, zoom); }
         }, options);
         this._globeness = 1; // When transform is cloned for use in symbols, `_updateAnimation` function which usually sets this value never gets called.

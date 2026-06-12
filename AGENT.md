@@ -2,11 +2,11 @@
 
 ## What is this?
 
-A private fork of [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) v5.22.0 adding a custom `point-hillshade` layer type. The layer renders terrain-aware point-light illumination — simulating localized lighting from mesh network nodes onto DEM terrain tiles.
+A private fork of [MapLibre GL JS](https://github.com/maplibre/maplibre-gl-js) adding a custom `point-hillshade` layer type. The layer renders terrain-aware point-light illumination — simulating localized lighting from mesh network nodes onto DEM terrain tiles.
 
 **Repo**: `dmduran12/maplibre-gl-js` (private)
-**Branch**: `waev/point-hillshade`
-**Base**: MapLibre GL JS v5.22.0 (commit `48caed8`)
+**Branch**: `main` (the point-hillshade work was merged from `waev/point-hillshade`)
+**Base**: synced up to MapLibre GL JS **v6.0.0** (upstream `main`)
 **Submodule path**: `frontend/maplibre-fork` in the waev project
 
 ---
@@ -51,14 +51,14 @@ Both shaders support two modes via `u_lightCount`:
 
 | File | Purpose |
 |------|---------|
-| `src/shaders/point_hillshade.fragment.glsl` | Main terrain detail fragment shader. Slope analysis, 5-probe occlusion, 3-layer compositing, coverage tex branching. |
-| `src/shaders/point_hillshade_surface.fragment.glsl` | Surface coverage tint fragment shader. NdotL³ facing + radial falloff, coverage tex branching. |
-| `src/shaders/point_hillshade.vertex.glsl` | Shared vertex shader (tile projection → `v_pos`). |
-| `src/shaders/point_hillshade_viewshed_prepare.fragment.glsl` | Viewshed prepare shader. 96-step sightline march for terrain occlusion (advanced feature). |
-| `src/render/draw_point_hillshade.ts` | Draw entry point. Dispatches surface + main terrain passes with stencil overlap handling. |
-| `src/render/program/point_hillshade_program.ts` | Main pass uniforms (12 uniforms including `u_coverageTex`/`u_lightCount`). |
-| `src/render/program/point_hillshade_surface_program.ts` | Surface pass uniforms (10 uniforms). |
-| `src/render/program/point_hillshade_viewshed_prepare_program.ts` | Viewshed prepare uniforms. |
+| `src/shaders/glsl/point_hillshade.fragment.glsl` | Main terrain detail fragment shader. Slope analysis, 5-probe occlusion, 3-layer compositing, coverage tex branching. |
+| `src/shaders/glsl/point_hillshade_surface.fragment.glsl` | Surface coverage tint fragment shader. NdotL³ facing + radial falloff, coverage tex branching. |
+| `src/shaders/glsl/point_hillshade.vertex.glsl` | Shared vertex shader (tile projection → `v_pos`). |
+| `src/shaders/glsl/point_hillshade_viewshed_prepare.fragment.glsl` | Viewshed prepare shader. 96-step sightline march for terrain occlusion (advanced feature). |
+| `src/webgl/draw/draw_point_hillshade.ts` | Draw entry point. Dispatches surface + main terrain passes with stencil overlap handling. |
+| `src/webgl/program/point_hillshade_program.ts` | Main pass uniforms (12 uniforms including `u_coverageTex`/`u_lightCount`). |
+| `src/webgl/program/point_hillshade_surface_program.ts` | Surface pass uniforms (10 uniforms). |
+| `src/webgl/program/point_hillshade_viewshed_prepare_program.ts` | Viewshed prepare uniforms. |
 | `src/style/style_layer/point_hillshade_style_layer.ts` | Style layer class (extends `StyleLayer`). |
 | `src/style/style_layer/point_hillshade_style_layer_properties.ts` | Paint property definitions (inline, not from style spec). |
 
@@ -67,12 +67,13 @@ Both shaders support two modes via `u_lightCount`:
 | File | Change |
 |------|--------|
 | `src/render/painter.ts` | Import + dispatch `drawPointHillshade` in `renderLayer()`. |
-| `src/render/program/program_uniforms.ts` | Register `pointHillshade`, `pointHillshadeSurface`, `pointHillshadeViewshedPrepare` programs. |
-| `src/render/render_to_texture.ts` | Add `'point-hillshade'` to `LAYERS_TO_TEXTURES` lookup. |
+| `src/webgl/program/program_uniforms.ts` | Register `pointHillshade`, `pointHillshadeSurface`, `pointHillshadeViewshedPrepare` programs. |
+| `src/webgl/render_to_texture.ts` | Add `'point-hillshade'` to `LAYERS_TO_TEXTURES` lookup. |
+| `src/webgl/draw/index.ts` | Export `drawPointHillshade` and register it in `webglDrawFunctions`. |
 | `src/shaders/shaders.ts` | Import + register shader sources for all point-hillshade programs. |
-| `src/style/create_style_layer.ts` | Handle `'point-hillshade'` in layer factory switch. |
+| `src/style/create_style_layer.ts` | Handle `'point-hillshade'` in layer factory switch; add `PointHillshadeStyleLayer` to `AnyStyleLayer`. |
 | `src/tile/tile.ts` | (Minor) Support for coverage data on tiles. |
-| `src/ui/map.ts` | (Minor) Type support for custom layer. |
+| `src/ui/map.ts` | (Minor) `addLayer` accepts a `{validate?}` option so non-spec `point-hillshade` layers can skip style-spec validation. |
 
 ---
 
@@ -104,10 +105,10 @@ Both shaders share `point_hillshade.vertex.glsl` which projects tile vertices an
 ## Build
 
 ```bash
-# Generate .g.ts shader files from GLSL sources
+# Generate .glsl.g.ts shader files from GLSL sources
 npm run generate-shaders
 
-# Production build (outputs dist/maplibre-gl.js)
+# Production build (outputs dist/maplibre-gl.mjs)
 npm run build-prod
 
 # After rebuilding, clear Vite cache in the frontend:
@@ -116,9 +117,15 @@ rm -rf ../node_modules/.vite
 npx vite --force
 ```
 
-**Build pipeline**: `generate-shaders` transpiles `.glsl` → `.glsl.g.ts` (minified string exports). `build-prod` runs Rollup to produce `dist/maplibre-gl.js`. The frontend's `package.json` references the fork via `"maplibre-gl": "file:./maplibre-fork"`.
+**Build pipeline (v6.0.0)**: `generate-shaders` transpiles `.glsl` → `.glsl.g.ts` (minified string exports) via `node --experimental-transform-types`. `build-prod` runs **Rolldown** (`rolldown -c rolldown.config.ts`) to produce an **ESM-only** `dist/maplibre-gl.mjs` (+ `maplibre-gl-worker.mjs` and `maplibre-gl.d.ts`). The UMD `maplibre-gl.js`/CSP bundles no longer exist. The frontend's `package.json` references the fork via `"maplibre-gl": "file:./maplibre-fork"`, resolved through the package `exports`/`module` fields.
 
 **Important**: Always run `generate-shaders` before `build-prod` after editing any `.glsl` file. The `.g.ts` files are gitignored — they're regenerated at build time.
+
+### v6.0.0 conventions (must follow when editing TS)
+- **Explicit import extensions**: all relative imports use `.ts` (or `.glsl.g.ts` for generated shaders), e.g. `import {Foo} from '../foo.ts'`. Extensionless relative imports will fail the build.
+- **Isolated declarations**: every exported function / class method / getter needs an explicit return type (the `.d.ts` is generated by `rolldown-plugin-dts` with `--isolatedDeclarations`).
+- **WebGL2-only**: WebGL1 was removed; `context.gl` is typed `WebGL2RenderingContext`, so no `as WebGL2RenderingContext` casts are needed.
+- **Validate gates**: run `npm run typecheck` (tsgo) and `npm run lint` (eslint) before committing; both must be clean.
 
 ---
 
@@ -136,7 +143,7 @@ git submodule update --init --recursive
 # After making changes in the fork:
 cd frontend/maplibre-fork
 git add -A && git commit -m "description"
-git push origin waev/point-hillshade
+git push origin main
 
 # Then update the submodule pointer in waev:
 cd ../..
@@ -152,10 +159,17 @@ git commit -m "chore: update maplibre-fork submodule"
 cd frontend/maplibre-fork
 git fetch upstream
 git merge upstream/main   # or rebase, depending on preference
-# Resolve conflicts (likely in modified files: painter.ts, shaders.ts, etc.)
+# Conflicts are usually limited to the small integration hooks:
+#   painter.ts, shaders.ts, create_style_layer.ts, ui/map.ts,
+#   webgl/draw/index.ts, webgl/program/program_uniforms.ts
+#   (plus mechanical: package-lock.json, test/build/bundle_size.json)
+npm install                # reconcile lockfile / pull new deps
 npm run generate-shaders
+npm run typecheck && npm run lint
 npm run build-prod
-git push origin waev/point-hillshade
+# Refresh the bundle-size baseline (point-hillshade adds ~15 KB raw):
+UPDATE=true npm run test-build -- min.test.ts
+git push origin main
 ```
 
 ---

@@ -1,15 +1,15 @@
 import Point from '@mapbox/point-geometry';
-import {ITransform} from '../../../src/geo/transform_interface';
-import {CollisionIndex} from '../../../src/symbol/collision_index';
-import Benchmark from '../lib/benchmark';
-import {OverlapMode} from '../../../src/style/style_layer/overlap_mode';
-import {OverscaledTileID, UnwrappedTileID} from '../../../src/tile/tile_id';
-import {SingleCollisionBox} from '../../../src/data/bucket/symbol_bucket';
-import {EXTENT} from '../../../src/data/extent';
-import {MercatorTransform} from '../../../src/geo/projection/mercator_transform';
-import {mat4} from 'gl-matrix';
-import {GlobeProjection} from '../../../src/geo/projection/globe_projection';
-import {GlobeTransform} from '../../../src/geo/projection/globe_transform';
+import {type ITransform} from '../../../src/geo/transform_interface.ts';
+import {CollisionIndex} from '../../../src/symbol/collision_index.ts';
+import Benchmark from '../lib/benchmark.ts';
+import {type OverlapMode} from '../../../src/style/style_layer/overlap_mode.ts';
+import {OverscaledTileID, type UnwrappedTileID} from '../../../src/tile/tile_id.ts';
+import {type SingleCollisionBox} from '../../../src/data/bucket/symbol_bucket.ts';
+import {EXTENT} from '../../../src/data/extent.ts';
+import {MercatorTransform} from '../../../src/geo/projection/mercator_transform.ts';
+import {type mat4} from 'gl-matrix';
+import {GlobeProjection} from '../../../src/geo/projection/globe_projection.ts';
+import {GlobeTransform} from '../../../src/geo/projection/globe_transform.ts';
 
 type TestSymbol = {
     collisionBox: SingleCollisionBox;
@@ -22,7 +22,7 @@ type TestSymbol = {
     translation: [number, number];
     shift?: Point;
     simpleProjectionMatrix?: mat4;
-}
+};
 
 // For this benchmark we need a deterministic random number generator. This function provides one.
 // It returns random floats in range 0..1.
@@ -41,7 +41,7 @@ function splitmix32(a) {
 
 export default class SymbolCollisionBox extends Benchmark {
     private _transform: ITransform;
-    private _symbols: Array<TestSymbol>;
+    private _symbols: TestSymbol[];
     private _useGlobeProjection: boolean = false;
 
     constructor(useGlobeProjection: boolean) {
@@ -105,7 +105,7 @@ export default class SymbolCollisionBox extends Benchmark {
         }
     }
 
-    async bench() {
+    async bench(): Promise<void> {
         const ci = new CollisionIndex(this._transform);
         ci.grid.hitTest = (_x1, _y1, _x2, _y2, _overlapMode, _predicate?) => {
             return true;

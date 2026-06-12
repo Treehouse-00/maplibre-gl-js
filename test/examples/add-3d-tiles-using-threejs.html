@@ -3,10 +3,11 @@
 <head>
     <title>Add 3D tiles using three.js</title>
     <meta property="og:description" content="Use a custom style layer with three.js to add 3D tiles to the map." />
+    <meta property="og:created" content="2026-03-03" />
     <meta charset='utf-8'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel='stylesheet' href='../../dist/maplibre-gl.css' />
-    <script src='../../dist/maplibre-gl-dev.js'></script>
+
     <style>
         body { margin: 0; padding: 0; }
         html, body, #map { height: 100%; }
@@ -25,6 +26,8 @@
 <div id="map"></div>
 
 <script type="module">
+    import * as maplibregl from '../../dist/maplibre-gl-dev.mjs';
+
     import * as THREE from 'three';
     import { TilesRenderer } from "3d-tiles-renderer";
     import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -74,7 +77,7 @@
 
         function getModelTransform(coord, rotate= [Math.PI / 2, 0, 0]) {
             const modelAsMercatorCoordinate = maplibregl.MercatorCoordinate.fromLngLat([coord[0], coord[1]], coord[2]);
-            const modelTransform = {
+            return {
                 translateX: modelAsMercatorCoordinate.x,
                 translateY: modelAsMercatorCoordinate.y,
                 translateZ: modelAsMercatorCoordinate.z,
@@ -83,7 +86,6 @@
                 rotateZ: rotate[2],
                 scale: modelAsMercatorCoordinate.meterInMercatorCoordinateUnits(),
             };
-            return modelTransform;
         }
 
         function updateLocalTransform(modelOrigin= [0, 0, 0]) {

@@ -1,16 +1,16 @@
-import {DOM} from '../util/dom';
-import {browser} from '../util/browser';
-import {LngLat} from '../geo/lng_lat';
+import {DOM} from '../util/dom.ts';
+import {browser} from '../util/browser.ts';
+import {LngLat} from '../geo/lng_lat.ts';
 import Point from '@mapbox/point-geometry';
-import {smartWrap} from '../util/smart_wrap';
-import {anchorTranslate, applyAnchorClass} from './anchor';
-import type {PositionAnchor} from './anchor';
-import {Event, Evented} from '../util/evented';
-import type {Map} from './map';
-import {type Popup, type Offset} from './popup';
-import type {LngLatLike} from '../geo/lng_lat';
-import type {MapMouseEvent, MapTouchEvent} from './events';
-import type {PointLike} from './camera';
+import {smartWrap} from '../util/smart_wrap.ts';
+import {anchorTranslate, applyAnchorClass} from './anchor.ts';
+import type {PositionAnchor} from './anchor.ts';
+import {Event, Evented} from '../util/evented.ts';
+import type {Map} from './map.ts';
+import {type Popup, type Offset} from './popup.ts';
+import type {LngLatLike} from '../geo/lng_lat.ts';
+import type {MapMouseEvent, MapTouchEvent} from './events.ts';
+import type {PointLike} from './camera.ts';
 
 /**
  * Alignment options of rotation and pitch
@@ -76,14 +76,16 @@ export type MarkerOptions = {
     pitchAlignment?: Alignment;
     /**
      * Marker's opacity when it's in clear view (not behind 3d terrain)
+     * Accepts any valid CSS opacity value as a number or string.
      * @defaultValue 1
      */
-    opacity?: string;
+    opacity?: string | number;
     /**
      * Marker's opacity when it's behind 3d terrain
+     * Accepts any valid CSS opacity value as a number or string.
      * @defaultValue 0.2
      */
-    opacityWhenCovered?: string;
+    opacityWhenCovered?: string | number;
     /**
       * If `true`, rounding is disabled for placement of the marker, allowing for
       * subpixel positioning and smoother movement when the marker is translated.
@@ -128,6 +130,20 @@ export type MarkerOptions = {
  * **Event** `dragend` of type {@link Event} will be fired when the marker is finished being dragged.
  *
  * **Event** `click` of type {@link Event} will be fired when the marker is clicked.
+ *
+ * ## CSS Classes
+ *
+ * **CSS class** `maplibregl-marker-covered` is toggled on the marker element when the marker
+ * is hidden behind 3D terrain or on the back of a globe.
+ * Use this class to apply custom styles to covered markers.
+ *
+ * @example
+ * ```css
+ * .maplibregl-marker-covered {
+ *     pointer-events: none;
+ *     cursor: default;
+ * }
+ * ```
  */
 export class Marker extends Evented {
     _map: Map;
@@ -162,20 +178,20 @@ export class Marker extends Evented {
     constructor(options?: MarkerOptions) {
         super();
 
-        this._anchor = options && options.anchor || 'center';
-        this._color = options && options.color || '#3FB1CE';
-        this._scale = options && options.scale || 1;
-        this._draggable = options && options.draggable || false;
-        this._clickTolerance = options && options.clickTolerance || 0;
-        this._subpixelPositioning = options && options.subpixelPositioning || false;
+        this._anchor = options?.anchor || 'center';
+        this._color = options?.color || '#3FB1CE';
+        this._scale = options?.scale || 1;
+        this._draggable = options?.draggable || false;
+        this._clickTolerance = options?.clickTolerance || 0;
+        this._subpixelPositioning = options?.subpixelPositioning || false;
         this._isDragging = false;
         this._state = 'inactive';
-        this._rotation = options && options.rotation || 0;
-        this._rotationAlignment = options && options.rotationAlignment || 'auto';
-        this._pitchAlignment = options && options.pitchAlignment && options.pitchAlignment !== 'auto' ?  options.pitchAlignment : this._rotationAlignment;
+        this._rotation = options?.rotation || 0;
+        this._rotationAlignment = options?.rotationAlignment || 'auto';
+        this._pitchAlignment = options?.pitchAlignment && options.pitchAlignment !== 'auto' ?  options.pitchAlignment : this._rotationAlignment;
         this.setOpacity(options?.opacity, options?.opacityWhenCovered);
 
-        if (!options || !options.element) {
+        if (!options?.element) {
             this._defaultMarker = true;
             this._element = DOM.create('div');
 
@@ -282,10 +298,10 @@ export class Marker extends Evented {
             // the y value of the center of the shadow ellipse relative to the svg top left is "shadow transform translate-y (29.0) + ellipse cy (5.80029008)"
             // offset to the svg center "height (41 / 2)" gives (29.0 + 5.80029008) - (41 / 2) and rounded for an integer pixel offset gives 14
             // negative is used to move the marker up from the center so the tip is at the Marker lngLat
-            this._offset = Point.convert(options && options.offset || [0, -14]);
+            this._offset = Point.convert(options?.offset || [0, -14]);
         } else {
             this._element = options.element;
-            this._offset = Point.convert(options && options.offset || [0, 0]);
+            this._offset = Point.convert(options?.offset || [0, 0]);
         }
 
         this._element.classList.add('maplibregl-marker');
@@ -298,7 +314,7 @@ export class Marker extends Evented {
         });
         applyAnchorClass(this._element, this._anchor, 'marker');
 
-        if (options && options.className) {
+        if (options?.className) {
             for (const name of options.className.split(' ')) {
                 this._element.classList.add(name);
             }
@@ -495,22 +511,22 @@ export class Marker extends Evented {
       * marker.setSubpixelPositioning(true);
       * ```
       */
-    setSubpixelPositioning(value: boolean) {
+    setSubpixelPositioning(value: boolean): this {
         this._subpixelPositioning = value;
         return this;
     }
 
-    _onClick = (e: MouseEvent) => {
+    _onClick = (e: MouseEvent): void => {
         this.fire(new Event('click', {originalEvent: e}));
     };
 
-    _onKeyPress = (e: KeyboardEvent) => {
+    _onKeyPress = (e: KeyboardEvent): void => {
         if (e.code === 'Space' || e.code === 'Enter') {
             this.togglePopup();
         }
     };
 
-    _onMapClick = (e: MapMouseEvent) => {
+    _onMapClick = (e: MapMouseEvent): void => {
         const targetElement = e.originalEvent.target;
         const element = this._element;
 
@@ -562,12 +578,15 @@ export class Marker extends Evented {
         return this;
     }
 
-    _updateOpacity(force: boolean = false) {
+    _updateOpacity(force: boolean = false): void {
         const terrain = this._map?.terrain;
         const occluded = this._map.transform.isLocationOccluded(this._lngLat);
         if (!terrain || occluded) {
             const targetOpacity = occluded ? this._opacityWhenCovered : this._opacity;
-            if (this._element.style.opacity !== targetOpacity) { this._element.style.opacity = targetOpacity; }
+            if (this._element.style.opacity !== targetOpacity) {
+                this._element.style.opacity = targetOpacity;
+                this._element.classList.toggle('maplibregl-marker-covered', occluded);
+            }
             return;
         }
         if (force) {
@@ -589,6 +608,7 @@ export class Marker extends Evented {
         const forgiveness = .006;
         if (markerDistance - terrainDistance < forgiveness) {
             this._element.style.opacity = this._opacity;
+            this._element.classList.remove('maplibregl-marker-covered');
             return;
         }
         // If the base is obscured, use the offset to check if the marker's center is obscured.
@@ -601,9 +621,10 @@ export class Marker extends Evented {
 
         if (this._popup?.isOpen() && centerIsInvisible) this._popup.remove();
         this._element.style.opacity = centerIsInvisible ? this._opacityWhenCovered : this._opacity;
+        this._element.classList.toggle('maplibregl-marker-covered', centerIsInvisible);
     }
 
-    _update = (e?: { type: 'move' | 'moveend' | 'terrain' | 'render' }) => {
+    _update = (e?: { type: 'move' | 'moveend' | 'terrain' | 'render' }): void => {
         if (!this._map) return;
 
         const isFullyLoaded = this._map.loaded() && !this._map.isMoving();
@@ -643,7 +664,7 @@ export class Marker extends Evented {
         this._element.style.transform = `${anchorTranslate[this._anchor]} translate(${this._pos.x}px, ${this._pos.y}px) ${pitch} ${rotation}`;
 
         browser.frameAsync(new AbortController(), this._map._ownerWindow).then(() => { // Run _updateOpacity only after painter.render and drawDepth
-            this._updateOpacity(e && e.type === 'moveend');
+            this._updateOpacity(e?.type === 'moveend');
         }).catch(() => {});
     };
 
@@ -676,7 +697,7 @@ export class Marker extends Evented {
      * marker.addClassName('some-class')
      * ```
      */
-    addClassName(className: string) {
+    addClassName(className: string): void {
         this._element.classList.add(className);
     }
 
@@ -691,7 +712,7 @@ export class Marker extends Evented {
      * marker.removeClassName('some-class')
      * ```
      */
-    removeClassName(className: string) {
+    removeClassName(className: string): void {
         this._element.classList.remove(className);
     }
 
@@ -712,7 +733,7 @@ export class Marker extends Evented {
         return this._element.classList.toggle(className);
     }
 
-    _onMove = (e: MapMouseEvent | MapTouchEvent) => {
+    _onMove = (e: MapMouseEvent | MapTouchEvent): void => {
         if (!this._isDragging) {
             const clickTolerance = this._clickTolerance || this._map._clickTolerance;
             this._isDragging = e.point.dist(this._pointerdownPos) >= clickTolerance;
@@ -735,7 +756,7 @@ export class Marker extends Evented {
         this.fire(new Event('drag'));
     };
 
-    _onUp = () => {
+    _onUp = (): void => {
         // revert to normal pointer event handling
         this._element.style.pointerEvents = 'auto';
         this._positionDelta = null;
@@ -752,7 +773,7 @@ export class Marker extends Evented {
         this._state = 'inactive';
     };
 
-    _addDragHandler = (e: MapMouseEvent | MapTouchEvent) => {
+    _addDragHandler = (e: MapMouseEvent | MapTouchEvent): void => {
         if (this._element.contains(e.originalEvent.target as any)) {
             e.preventDefault();
 
@@ -864,7 +885,7 @@ export class Marker extends Evented {
      * @param opacity - Sets the `opacity` property of the marker.
      * @param opacityWhenCovered - Sets the `opacityWhenCovered` property of the marker.
      */
-    setOpacity(opacity?: string, opacityWhenCovered?: string): this {
+    setOpacity(opacity?: string | number, opacityWhenCovered?: string | number): this {
         // Reset opacity when called without params or from constructor
         if (this._opacity === undefined || (opacity === undefined && opacityWhenCovered === undefined)) {
             this._opacity = '1';
@@ -872,10 +893,10 @@ export class Marker extends Evented {
         }
 
         if (opacity !== undefined) {
-            this._opacity = opacity;
+            this._opacity = String(opacity);
         }
         if (opacityWhenCovered !== undefined) {
-            this._opacityWhenCovered = opacityWhenCovered;
+            this._opacityWhenCovered = String(opacityWhenCovered);
         }
 
         if (this._map) {

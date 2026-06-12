@@ -1,12 +1,12 @@
 import {describe, beforeEach, afterEach, test, expect, vi, it} from 'vitest';
 import {fakeServer, type FakeServer} from 'nise';
-import {RasterDEMTileSource} from './raster_dem_tile_source';
-import {OverscaledTileID} from '../tile/tile_id';
-import {RequestManager} from '../util/request_manager';
-import {type Tile} from '../tile/tile';
-import {getMockDispatcher} from '../util/test/util';
-import {sleep, waitForEvent, waitForMetadataEvent} from '../util/test/util';
-import type {MapSourceDataEvent} from '../ui/events';
+import {RasterDEMTileSource} from './raster_dem_tile_source.ts';
+import {OverscaledTileID} from '../tile/tile_id.ts';
+import {RequestManager} from '../util/request_manager.ts';
+import {type Tile} from '../tile/tile.ts';
+import {getMockDispatcher} from '../util/test/util.ts';
+import {sleep, waitForEvent, waitForMetadataEvent} from '../util/test/util.ts';
+import type {MapSourceDataEvent} from '../ui/events.ts';
 
 function createSource(options, transformCallback?) {
     const source = new RasterDEMTileSource('id', options, getMockDispatcher(), options.eventedParent);
@@ -224,7 +224,7 @@ describe('RasterDEMTileSource', () => {
             [200, {'Content-Type': 'image/png', 'Content-Length': 1, 'Cache-Control': 'max-age=100'}, '0']
         );
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = true;
 
         const promise = waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');
@@ -235,7 +235,7 @@ describe('RasterDEMTileSource', () => {
             tileID: new OverscaledTileID(10, 0, 10, 5, 5),
             state: 'loading',
             setExpiryData() {},
-            actor: source.dispatcher.getActor()
+            actor: source.dispatcher.getReadyActor()
         } as any as Tile;
         const expiryDataSpy = vi.spyOn(tile, 'setExpiryData');
         const tilePromise = source.loadTile(tile);
@@ -257,7 +257,7 @@ describe('RasterDEMTileSource', () => {
             [200, {'Content-Type': 'image/png', 'Content-Length': 1, 'Expires': 'Wed, 21 Oct 2015 07:28:00 GMT'}, '0']
         );
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = true;
 
         const promise = waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');
@@ -268,7 +268,7 @@ describe('RasterDEMTileSource', () => {
             tileID: new OverscaledTileID(10, 0, 10, 5, 5),
             state: 'loading',
             setExpiryData() {},
-            actor: source.dispatcher.getActor()
+            actor: source.dispatcher.getReadyActor()
         } as any as Tile;
         const expiryDataSpy = vi.spyOn(tile, 'setExpiryData');
         const tilePromise = source.loadTile(tile);
@@ -290,7 +290,7 @@ describe('RasterDEMTileSource', () => {
             [200, {'Content-Type': 'image/png', 'Content-Length': 1, 'Cache-Control': '', 'Expires': 'Wed, 21 Oct 2015 07:28:00 GMT'}, '0']
         );
         const source = createSource({url: '/source.json'});
-        source.map.painter = {context: {}, getTileTexture: () => { return {update: () => {}}; }} as any;
+        source.map.painter = {context: {}, getTileTexture: () => ({update: () => {}})} as any;
         source.map._refreshExpiredTiles = true;
 
         const promise = waitForEvent(source, 'data', (e: MapSourceDataEvent) => e.sourceDataType === 'metadata');
@@ -301,7 +301,7 @@ describe('RasterDEMTileSource', () => {
             tileID: new OverscaledTileID(10, 0, 10, 5, 5),
             state: 'loading',
             setExpiryData() {},
-            actor: source.dispatcher.getActor()
+            actor: source.dispatcher.getReadyActor()
         } as any as Tile;
         const expiryDataSpy = vi.spyOn(tile, 'setExpiryData');
         const tilePromise = source.loadTile(tile);
@@ -363,7 +363,7 @@ describe('RasterDEMTileSource', () => {
         const tile = {
             tileID: new OverscaledTileID(5, 0, 5, 31, 5),
             state: 'reloading',
-            actor: source.dispatcher.getActor(),
+            actor: source.dispatcher.getReadyActor(),
             loadVectorData() {},
             setExpiryData() {}
         } as any as Tile;

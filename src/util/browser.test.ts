@@ -1,6 +1,6 @@
 import {describe, test, expect, beforeEach, vi, afterEach, type Mock} from 'vitest';
-import {beforeMapTest, createMap as globalCreateMap} from './test/util';
-import {browser} from './browser';
+import {beforeMapTest, createMap as globalCreateMap} from './test/util.ts';
+import {browser} from './browser.ts';
 
 describe('browser', () => {
     describe('frame',() => {
@@ -13,7 +13,9 @@ describe('browser', () => {
         function flushAllRAFs() {
             const pending = [...rafCallbacks];
             rafCallbacks = [];
-            pending.forEach(({callback}) => callback(performance.now()));
+            for (const {callback} of pending) {
+                callback(performance.now());
+            }
         }
 
         beforeEach(() => {

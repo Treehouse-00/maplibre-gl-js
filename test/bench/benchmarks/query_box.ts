@@ -1,23 +1,23 @@
-import Benchmark from '../lib/benchmark';
-import createMap from '../lib/create_map';
-import type {Map} from '../../../src/ui/map';
-import type {PointLike} from '../../../src/ui/camera';
+import Benchmark from '../lib/benchmark.ts';
+import createMap from '../lib/create_map.ts';
+import type {Map} from '../../../src/ui/map.ts';
+import type {PointLike} from '../../../src/ui/camera.ts';
 
 const width = 1024;
 const height = 768;
 
 export default class QueryBox extends Benchmark {
     style: string;
-    locations: Array<any>;
-    maps: Array<Map>;
+    locations: any[];
+    maps: Map[];
 
-    constructor(style: string, locations: Array<any>) {
+    constructor(style: string, locations: any[]) {
         super();
         this.style = style;
         this.locations = locations;
     }
 
-    async setup() {
+    async setup(): Promise<void> {
         try {
             this.maps = await Promise.all(this.locations.map(location => {
                 return createMap({
@@ -33,13 +33,13 @@ export default class QueryBox extends Benchmark {
         }
     }
 
-    bench() {
+    bench(): void {
         for (const map of this.maps) {
             map.queryRenderedFeatures({} as PointLike);
         }
     }
 
-    teardown() {
+    teardown(): void {
         for (const map of this.maps) {
             map.remove();
         }

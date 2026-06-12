@@ -1,17 +1,17 @@
 import {describe, expect, test} from 'vitest';
-import {EXTENT} from '../../data/extent';
+import {EXTENT} from '../../data/extent.ts';
 import Point from '@mapbox/point-geometry';
-import {LngLat} from '../lng_lat';
-import {GlobeTransform} from './globe_transform';
-import {CanonicalTileID, OverscaledTileID, UnwrappedTileID} from '../../tile/tile_id';
-import {angularCoordinatesRadiansToVector, mercatorCoordinatesToAngularCoordinatesRadians, sphereSurfacePointToCoordinates} from './globe_utils';
-import {expectToBeCloseToArray} from '../../util/test/util';
-import {MercatorCoordinate} from '../mercator_coordinate';
-import {tileCoordinatesToLocation} from './mercator_utils';
-import {MercatorTransform} from './mercator_transform';
-import {globeConstants} from './vertical_perspective_projection';
+import {LngLat} from '../lng_lat.ts';
+import {GlobeTransform} from './globe_transform.ts';
+import {CanonicalTileID, OverscaledTileID, UnwrappedTileID} from '../../tile/tile_id.ts';
+import {angularCoordinatesRadiansToVector, mercatorCoordinatesToAngularCoordinatesRadians, sphereSurfacePointToCoordinates} from './globe_utils.ts';
+import {expectToBeCloseToArray} from '../../util/test/util.ts';
+import {MercatorCoordinate} from '../mercator_coordinate.ts';
+import {tileCoordinatesToLocation} from './mercator_utils.ts';
+import {MercatorTransform} from './mercator_transform.ts';
+import {globeConstants} from './vertical_perspective_projection.ts';
 
-function testPlaneAgainstLngLat(lngDegrees: number, latDegrees: number, plane: Array<number>) {
+function testPlaneAgainstLngLat(lngDegrees: number, latDegrees: number, plane: number[]) {
     const lat = latDegrees / 180.0 * Math.PI;
     const lng = lngDegrees / 180.0 * Math.PI;
     const len = Math.cos(lat);
@@ -23,7 +23,7 @@ function testPlaneAgainstLngLat(lngDegrees: number, latDegrees: number, plane: A
     return planeDistance(pointOnSphere, plane);
 }
 
-function planeDistance(point: Array<number>, plane: Array<number>) {
+function planeDistance(point: number[], plane: number[]) {
     return point[0] * plane[0] + point[1] * plane[1] + point[2] * plane[2] + plane[3];
 }
 
@@ -129,40 +129,40 @@ describe('GlobeTransform', () => {
             const precisionDigits = 10;
 
             const globeTransform = createGlobeTransform();
-            expectToBeCloseToArray(globeTransform.cameraPosition as Array<number>, [0, 0, 8.110445867263898], precisionDigits);
+            expectToBeCloseToArray(globeTransform.cameraPosition as number[], [0, 0, 8.110445867263898], precisionDigits);
 
             globeTransform.resize(512, 512);
             globeTransform.setZoom(-0.5);
             globeTransform.setCenter(new LngLat(0, 80));
-            expectToBeCloseToArray(globeTransform.cameraPosition as Array<number>, [0, 2.2818294674820794, 0.40234810049271963], precisionDigits);
+            expectToBeCloseToArray(globeTransform.cameraPosition as number[], [0, 2.2818294674820794, 0.40234810049271963], precisionDigits);
 
             globeTransform.setPitch(35);
             globeTransform.setBearing(70);
-            expectToBeCloseToArray(globeTransform.cameraPosition as Array<number>, [-0.7098603286961542, 2.002400604307631, 0.6154310261827212], precisionDigits);
+            expectToBeCloseToArray(globeTransform.cameraPosition as number[], [-0.7098603286961542, 2.002400604307631, 0.6154310261827212], precisionDigits);
 
             globeTransform.setPitch(35);
             globeTransform.setBearing(70);
             globeTransform.setRoll(40);
-            expectToBeCloseToArray(globeTransform.cameraPosition as Array<number>, [-0.7098603286961542, 2.002400604307631, 0.6154310261827212], precisionDigits);
+            expectToBeCloseToArray(globeTransform.cameraPosition as number[], [-0.7098603286961542, 2.002400604307631, 0.6154310261827212], precisionDigits);
 
             globeTransform.setPitch(35);
             globeTransform.setBearing(70);
             globeTransform.setRoll(180);
-            expectToBeCloseToArray(globeTransform.cameraPosition as Array<number>, [-0.7098603286961542, 2.002400604307631, 0.6154310261827212], precisionDigits);
+            expectToBeCloseToArray(globeTransform.cameraPosition as number[], [-0.7098603286961542, 2.002400604307631, 0.6154310261827212], precisionDigits);
 
             globeTransform.setCenter(new LngLat(-10, 42));
-            expectToBeCloseToArray(globeTransform.cameraPosition as Array<number>, [-3.8450970996236364, 2.9368285470351516, 4.311953269048194], precisionDigits);
+            expectToBeCloseToArray(globeTransform.cameraPosition as number[], [-3.8450970996236364, 2.9368285470351516, 4.311953269048194], precisionDigits);
         });
 
         test('sphere point to coordinate', () => {
             const precisionDigits = 10;
-            let unprojected = sphereSurfacePointToCoordinates([0, 0, 1]) as LngLat;
+            let unprojected = sphereSurfacePointToCoordinates([0, 0, 1]);
             expect(unprojected.lng).toBeCloseTo(0, precisionDigits);
             expect(unprojected.lat).toBeCloseTo(0, precisionDigits);
-            unprojected = sphereSurfacePointToCoordinates([0, 1, 0]) as LngLat;
+            unprojected = sphereSurfacePointToCoordinates([0, 1, 0]);
             expect(unprojected.lng).toBeCloseTo(0, precisionDigits);
             expect(unprojected.lat).toBeCloseTo(90, precisionDigits);
-            unprojected = sphereSurfacePointToCoordinates([1, 0, 0]) as LngLat;
+            unprojected = sphereSurfacePointToCoordinates([1, 0, 0]);
             expect(unprojected.lng).toBeCloseTo(90, precisionDigits);
             expect(unprojected.lat).toBeCloseTo(0, precisionDigits);
         });

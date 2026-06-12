@@ -6,6 +6,8 @@ Benchmarks help us catch performance regressions and improve performance.
 
 Start the benchmark server with `npm run start-bench`.
 
+Chrome needs to load a worker from a different origin. To avoid a security error, start Chrome with the following CLI arguments: `--disable-web-security --user-data-dir="whateverEmptyTmpPath"`.
+
 To run all benchmarks, open [the benchmark page, `http://localhost:9966/test/bench/versions/index.html`](http://localhost:9966/test/bench/versions/index.html).
 
 To run all benchmarks for the checkout only, that is without comparing to any releases, open [`http://localhost:9966/test/bench/versions/index.html?compare=`](http://localhost:9966/test/bench/versions/index.html?compare=).
@@ -29,7 +31,7 @@ To run all benchmarks, open [the benchmark page, `http://localhost:9966/test/ben
 
 To run a specific benchmark, add its name to the url hash, for example [`http://localhost:9966/test/bench/styles/index.html#Layout`](http://localhost:9966/test/bench/styles/index.html#Layout).
 
-By default, the style benchmark page will run its benchmarks against `https://api.maptiler.com/maps/streets/style.json?key=get_your_own_OpIi9ZULNHzrESv6T2vL`. `Layout` and `Paint` styles will run one instance of the test for each tile/location in an internal list of tiles. This behavior helps visualize the ways in which a style performs given various conditions present in each tile (CJK text, dense urban areas, rural areas, etc). `QueryBox` and `QueryPoint` use the internal list of tiles but otherwise run the same as their non-style benchmark equivalents. `StyleLayerCreate` and `StyleValidate` are not tile/location dependent and run the same way as their non-style benchmark equivalents. All other benchmark tests from the non-style suite are not used when benchmarking styles.
+By default, the style benchmark page will run its benchmarks against `https://tiles.openfreemap.org/styles/liberty`. `Layout` and `Paint` styles will run one instance of the test for each tile/location in an internal list of tiles. This behavior helps visualize the ways in which a style performs given various conditions present in each tile (CJK text, dense urban areas, rural areas, etc). `QueryBox` and `QueryPoint` use the internal list of tiles but otherwise run the same as their non-style benchmark equivalents. `StyleLayerCreate` and `StyleValidate` are not tile/location dependent and run the same way as their non-style benchmark equivalents. All other benchmark tests from the non-style suite are not used when benchmarking styles.
 
 ## Generating gl statistics
 

@@ -1,12 +1,12 @@
 import {getTileBBox} from '@mapbox/whoots-js';
-import {EXTENT} from '../data/extent';
+import {EXTENT} from '../data/extent.ts';
 import Point from '@mapbox/point-geometry';
-import {MercatorCoordinate} from '../geo/mercator_coordinate';
-import {register} from '../util/web_worker_transfer';
+import {MercatorCoordinate} from '../geo/mercator_coordinate.ts';
+import {register} from '../util/web_worker_transfer.ts';
 import {type mat4} from 'gl-matrix';
 import {type ICanonicalTileID, type IMercatorCoordinate} from '@maplibre/maplibre-gl-style-spec';
-import {MAX_TILE_ZOOM, MIN_TILE_ZOOM} from '../util/util';
-import {isInBoundsForTileZoomXY} from '../util/world_bounds';
+import {MAX_TILE_ZOOM, MIN_TILE_ZOOM} from '../util/util.ts';
+import {isInBoundsForTileZoomXY} from '../util/world_bounds.ts';
 
 /**
  * A canonical way to define a tile ID
@@ -29,14 +29,14 @@ export class CanonicalTileID implements ICanonicalTileID {
         this.key = calculateTileKey(0, z, z, x, y);
     }
 
-    equals(id: ICanonicalTileID) {
+    equals(id: ICanonicalTileID): boolean {
         return this.z === id.z && this.x === id.x && this.y === id.y;
     }
 
     /**
      * given a list of urls, choose a url template and return a tile URL
      */
-    url(urls: Array<string>, pixelRatio: number, scheme?: string | null) {
+    url(urls: string[], pixelRatio: number, scheme?: string | null): string {
         const bbox = getTileBBox(this.x, this.y, this.z);
         const quadkey = getQuadkey(this.z, this.x, this.y);
 
@@ -50,19 +50,19 @@ export class CanonicalTileID implements ICanonicalTileID {
             .replace(/{bbox-epsg-3857}/g, bbox);
     }
 
-    isChildOf(parent: ICanonicalTileID) {
+    isChildOf(parent: ICanonicalTileID): boolean {
         const dz = this.z - parent.z;
         return  dz > 0 && parent.x === (this.x >> dz) && parent.y === (this.y >> dz);
     }
 
-    getTilePoint(coord: IMercatorCoordinate) {
+    getTilePoint(coord: IMercatorCoordinate): Point {
         const tilesAtZoom = Math.pow(2, this.z);
         return new Point(
             (coord.x * tilesAtZoom - this.x) * EXTENT,
             (coord.y * tilesAtZoom - this.y) * EXTENT);
     }
 
-    toString() {
+    toString(): string {
         return `${this.z}/${this.x}/${this.y}`;
     }
 }
@@ -107,11 +107,11 @@ export class OverscaledTileID {
         this.key = calculateTileKey(wrap, overscaledZ, z, x, y);
     }
 
-    clone() {
+    clone(): OverscaledTileID {
         return new OverscaledTileID(this.overscaledZ, this.wrap, this.canonical.z, this.canonical.x, this.canonical.y);
     }
 
-    equals(id: OverscaledTileID) {
+    equals(id: OverscaledTileID): boolean {
         return this.overscaledZ === id.overscaledZ && this.wrap === id.wrap && this.canonical.equals(id.canonical);
     }
 
@@ -123,7 +123,7 @@ export class OverscaledTileID {
      * @returns a new OverscaledTileID representing the tile at the target zoom level
      * @throws if targetZ is greater than this.overscaledZ
      */
-    scaledTo(targetZ: number) {
+    scaledTo(targetZ: number): OverscaledTileID {
         if (targetZ > this.overscaledZ) throw new Error(`targetZ > this.overscaledZ; targetZ = ${targetZ}; overscaledZ = ${this.overscaledZ}`);
         const zDifference = this.canonical.z - targetZ;
         if (targetZ > this.canonical.z) {
@@ -133,7 +133,7 @@ export class OverscaledTileID {
         }
     }
 
-    isOverscaled() {
+    isOverscaled(): boolean {
         return (this.overscaledZ > this.canonical.z);
     }
 
@@ -170,7 +170,7 @@ export class OverscaledTileID {
         );
     }
 
-    children(sourceMaxZoom: number) {
+    children(sourceMaxZoom: number): OverscaledTileID[] {
         if (this.overscaledZ >= sourceMaxZoom) {
             // return a single tile coord representing a an overscaled tile
             return [new OverscaledTileID(this.overscaledZ + 1, this.wrap, this.canonical.z, this.canonical.x, this.canonical.y)];
@@ -187,7 +187,7 @@ export class OverscaledTileID {
         ];
     }
 
-    isLessThan(rhs: OverscaledTileID) {
+    isLessThan(rhs: OverscaledTileID): boolean {
         if (this.wrap < rhs.wrap) return true;
         if (this.wrap > rhs.wrap) return false;
 
@@ -197,31 +197,31 @@ export class OverscaledTileID {
         if (this.canonical.x < rhs.canonical.x) return true;
         if (this.canonical.x > rhs.canonical.x) return false;
 
-        if (this.canonical.y < rhs.canonical.y) return true;
-        return false;
+        return this.canonical.y < rhs.canonical.y;
+
     }
 
-    wrapped() {
+    wrapped(): OverscaledTileID {
         return new OverscaledTileID(this.overscaledZ, 0, this.canonical.z, this.canonical.x, this.canonical.y);
     }
 
-    unwrapTo(wrap: number) {
+    unwrapTo(wrap: number): OverscaledTileID {
         return new OverscaledTileID(this.overscaledZ, wrap, this.canonical.z, this.canonical.x, this.canonical.y);
     }
 
-    overscaleFactor() {
+    overscaleFactor(): number {
         return Math.pow(2, this.overscaledZ - this.canonical.z);
     }
 
-    toUnwrapped() {
+    toUnwrapped(): UnwrappedTileID {
         return new UnwrappedTileID(this.wrap, this.canonical);
     }
 
-    toString() {
+    toString(): string {
         return `${this.overscaledZ}/${this.canonical.x}/${this.canonical.y}`;
     }
 
-    getTilePoint(coord: MercatorCoordinate) {
+    getTilePoint(coord: MercatorCoordinate): Point {
         return this.canonical.getTilePoint(new MercatorCoordinate(coord.x - this.wrap, coord.y));
     }
 
@@ -283,10 +283,10 @@ export function calculateTileKey(wrap: number, overscaledZ: number, z: number, x
     return (dim * dim * wrap + dim * y + x).toString(36) + z.toString(36) + overscaledZ.toString(36);
 }
 
-function getQuadkey(z, x, y) {
-    let quadkey = '', mask;
+function getQuadkey(z:number, x:number, y:number): string {
+    let quadkey = '';
     for (let i = z; i > 0; i--) {
-        mask = 1 << (i - 1);
+        const mask = 1 << (i - 1);
         quadkey += ((x & mask ? 1 : 0) + (y & mask ? 2 : 0));
     }
     return quadkey;

@@ -1,4 +1,4 @@
-import type {OverlapMode} from '../style/style_layer/overlap_mode';
+import type {OverlapMode} from '../style/style_layer/overlap_mode.ts';
 
 type QueryArgs = {
     hitTest: boolean;
@@ -60,12 +60,12 @@ function overlapAllowed(overlapA: OverlapMode, overlapB: OverlapMode): boolean {
  * the number of comparisons necessary.
  */
 export class GridIndex<T extends GridKey> {
-    circleKeys: Array<T>;
-    boxKeys: Array<T>;
-    boxCells: Array<Array<number>>;
-    circleCells: Array<Array<number>>;
-    bboxes: Array<number>;
-    circles: Array<number>;
+    circleKeys: T[];
+    boxKeys: T[];
+    boxCells: number[][];
+    circleCells: number[][];
+    bboxes: number[];
+    circles: number[];
     xCellCount: number;
     yCellCount: number;
     width: number;
@@ -102,11 +102,11 @@ export class GridIndex<T extends GridKey> {
         this.circleUid = 0;
     }
 
-    keysLength() {
+    keysLength(): number {
         return this.boxKeys.length + this.circleKeys.length;
     }
 
-    insert(key: T, x1: number, y1: number, x2: number, y2: number) {
+    insert(key: T, x1: number, y1: number, x2: number, y2: number): void {
         this._forEachCell(x1, y1, x2, y2, this._insertBoxCell, this.boxUid++);
         this.boxKeys.push(key);
         this.bboxes.push(x1);
@@ -115,7 +115,7 @@ export class GridIndex<T extends GridKey> {
         this.bboxes.push(y2);
     }
 
-    insertCircle(key: T, x: number, y: number, radius: number) {
+    insertCircle(key: T, x: number, y: number, radius: number): void {
         // Insert circle into grid for all cells in the circumscribing square
         // It's more than necessary (by a factor of 4/PI), but fast to insert
         this._forEachCell(x - radius, y - radius, x + radius, y + radius, this._insertCircleCell, this.circleUid++);
@@ -298,7 +298,7 @@ export class GridIndex<T extends GridKey> {
         return false;
     }
 
-    private _queryCellCircle(x1: number, y1: number, x2: number, y2: number, cellIndex: number, result: Array<boolean>, queryArgs: QueryArgs, predicate?: (key: T) => boolean): boolean {
+    private _queryCellCircle(x1: number, y1: number, x2: number, y2: number, cellIndex: number, result: boolean[], queryArgs: QueryArgs, predicate?: (key: T) => boolean): boolean {
         const {circle, seenUids, overlapMode} = queryArgs;
         const boxCell = this.boxCells[cellIndex];
 

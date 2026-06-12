@@ -1,13 +1,13 @@
-import {OverscaledTileID} from '../../tile/tile_id';
+import {OverscaledTileID} from '../../tile/tile_id.ts';
 import {vec2, type vec4} from 'gl-matrix';
-import {MercatorCoordinate} from '../mercator_coordinate';
-import {degreesToRadians, scaleZoom} from '../../util/util';
+import {MercatorCoordinate} from '../mercator_coordinate.ts';
+import {degreesToRadians, scaleZoom} from '../../util/util.ts';
 
-import type {IReadonlyTransform} from '../transform_interface';
-import type {Terrain} from '../../render/terrain';
-import type {Frustum} from '../../util/primitives/frustum';
-import {maxMercatorHorizonAngle} from './mercator_utils';
-import {type IBoundingVolume, IntersectionResult} from '../../util/primitives/bounding_volume';
+import type {IReadonlyTransform} from '../transform_interface.ts';
+import type {Terrain} from '../../render/terrain.ts';
+import type {Frustum} from '../../util/primitives/frustum.ts';
+import {maxMercatorHorizonAngle} from './mercator_utils.ts';
+import {type IBoundingVolume, IntersectionResult} from '../../util/primitives/bounding_volume.ts';
 
 type CoveringTilesResult = {
     tileID: OverscaledTileID;
@@ -212,8 +212,8 @@ export function coveringTiles(transform: IReadonlyTransform, options: CoveringTi
     };
 
     // Do a depth-first traversal to find visible tiles and proper levels of detail
-    const stack: Array<CoveringTilesStackEntry> = [];
-    const result: Array<CoveringTilesResult> = [];
+    const stack: CoveringTilesStackEntry[] = [];
+    const result: CoveringTilesResult[] = [];
 
     if (transform.renderWorldCopies && detailsProvider.allowWorldCopies()) {
         // Render copy of the globe thrice on both sides

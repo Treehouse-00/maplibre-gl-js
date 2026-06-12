@@ -1,11 +1,11 @@
 import {describe, beforeEach, it, afterEach, expect, vi, type MockInstance} from 'vitest';
 import {type FakeServer, fakeServer} from 'nise';
-import {rtlMainThreadPluginFactory} from './rtl_text_plugin_main_thread';
-import {sleep} from '../util/test/util';
-import {browser} from '../util/browser';
-import {Dispatcher} from '../util/dispatcher';
-import {type PluginState} from './rtl_text_plugin_status';
-import {MessageType} from '../util/actor_messages';
+import {rtlMainThreadPluginFactory} from './rtl_text_plugin_main_thread.ts';
+import {sleep} from '../util/test/util.ts';
+import {browser} from '../util/browser.ts';
+import {Dispatcher} from '../util/dispatcher.ts';
+import {type PluginState} from './rtl_text_plugin_status.ts';
+import {MessageType} from '../util/actor_messages.ts';
 const rtlMainThreadPlugin = rtlMainThreadPluginFactory();
 
 describe('RTLMainThreadPlugin', () => {
@@ -20,7 +20,7 @@ describe('RTLMainThreadPlugin', () => {
         global.fetch = null;
         // Reset the singleton instance before each test
         rtlMainThreadPlugin.clearRTLTextPlugin();
-        broadcastSpy = vi.spyOn(Dispatcher.prototype, 'broadcast').mockImplementation(() => { return Promise.resolve({} as any); });
+        broadcastSpy = vi.spyOn(Dispatcher.prototype, 'broadcast').mockImplementation(() => Promise.resolve({} as any));
     });
 
     function broadcastMockSuccess(message: MessageType, payload: PluginState): Promise<PluginState[]> {
@@ -86,7 +86,7 @@ describe('RTLMainThreadPlugin', () => {
     });
 
     it('should throw if the plugin url is not set', async () => {
-        const spy = vi.spyOn(browser, 'resolveURL').mockImplementation(() => { return ''; });
+        const spy = vi.spyOn(browser, 'resolveURL').mockImplementation(() => '');
         await expect(rtlMainThreadPlugin.setRTLTextPlugin(null)).rejects.toThrow('requested url null is invalid');
         spy.mockRestore();
     });

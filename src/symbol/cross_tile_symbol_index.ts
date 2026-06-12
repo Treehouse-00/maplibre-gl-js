@@ -1,13 +1,12 @@
 import KDBush from 'kdbush';
-import {EXTENT} from '../data/extent';
+import {EXTENT} from '../data/extent.ts';
 
-import {type SymbolInstanceArray} from '../data/array_types.g';
-
-import type {SymbolInstance} from '../data/array_types.g';
-import type {OverscaledTileID} from '../tile/tile_id';
-import type {SymbolBucket} from '../data/bucket/symbol_bucket';
-import type {StyleLayer} from '../style/style_layer';
-import type {Tile} from '../tile/tile';
+import type {SymbolInstance} from '../data/array_types.g.ts';
+import {type SymbolInstanceArray} from '../data/array_types.g.ts';
+import type {OverscaledTileID} from '../tile/tile_id.ts';
+import type {SymbolBucket} from '../data/bucket/symbol_bucket.ts';
+import type {StyleLayer} from '../style/style_layer.ts';
+import type {Tile} from '../tile/tile.ts';
 
 /*
     The CrossTileSymbolIndex generally works on the assumption that
@@ -28,11 +27,11 @@ const roundingFactor = 512 / EXTENT / 2;
 
 export const KDBUSH_THRESHHOLD = 128;
 
-interface SymbolsByKeyEntry {
+type SymbolsByKeyEntry = {
     index?: KDBush;
-    positions?: {x: number; y: number}[];
+    positions?: Array<{x: number; y: number}>;
     crossTileIDs: number[];
-}
+};
 
 class TileLayerIndex {
     _symbolsByKey: Record<number, SymbolsByKeyEntry> = {};
@@ -91,17 +90,15 @@ class TileLayerIndex {
         const yWorld = (y * EXTENT + symbolInstance.anchorY) * scale;
         const xOffset = localX * EXTENT * roundingFactor;
         const yOffset = localY * EXTENT * roundingFactor;
-        const result =  {
+        return {
             x: Math.floor(xWorld - xOffset),
             y: Math.floor(yWorld - yOffset)
         };
-
-        return result;
     }
 
     findMatches(symbolInstances: SymbolInstanceArray, newTileID: OverscaledTileID, zoomCrossTileIDs: {
         [crossTileID: number]: boolean;
-    }) {
+    }): void {
         const tolerance = this.tileID.canonical.z < newTileID.canonical.z ? 1 : Math.pow(2, this.tileID.canonical.z - newTileID.canonical.z);
 
         for (let i = 0; i < symbolInstances.length; i++) {
@@ -162,7 +159,7 @@ class TileLayerIndex {
         }
     }
 
-    getCrossTileIDsLists() {
+    getCrossTileIDsLists(): number[][] {
         return Object.values(this._symbolsByKey).map(({crossTileIDs}) => crossTileIDs);
     }
 }
@@ -172,7 +169,7 @@ class CrossTileIDs {
     constructor() {
         this.maxCrossTileID = 0;
     }
-    generate() {
+    generate(): number {
         return ++this.maxCrossTileID;
     }
 }
@@ -201,7 +198,7 @@ class CrossTileSymbolLayerIndex {
      * To prevent labels from flashing out and in we adjust the tileID values in the indexes
      * so that they match the new wrapped version of the map.
      */
-    handleWrapJump(lng: number) {
+    handleWrapJump(lng: number): void {
         const wrapDelta = Math.round((lng - this.lng) / 360);
         if (wrapDelta !== 0) {
             for (const zoom in this.indexes) {
@@ -219,9 +216,8 @@ class CrossTileSymbolLayerIndex {
         this.lng = lng;
     }
 
-    addBucket(tileID: OverscaledTileID, bucket: SymbolBucket, crossTileIDs: CrossTileIDs) {
-        if (this.indexes[tileID.overscaledZ] &&
-            this.indexes[tileID.overscaledZ][tileID.key]) {
+    addBucket(tileID: OverscaledTileID, bucket: SymbolBucket, crossTileIDs: CrossTileIDs): boolean {
+        if (this.indexes[tileID.overscaledZ]?.[tileID.key]) {
             if (this.indexes[tileID.overscaledZ][tileID.key].bucketInstanceId ===
                 bucket.bucketInstanceId) {
                 return false;
@@ -241,9 +237,7 @@ class CrossTileSymbolLayerIndex {
             symbolInstance.crossTileID = 0;
         }
 
-        if (!this.usedCrossTileIDs[tileID.overscaledZ]) {
-            this.usedCrossTileIDs[tileID.overscaledZ] = {};
-        }
+        this.usedCrossTileIDs[tileID.overscaledZ] ||= {};
         const zoomCrossTileIDs = this.usedCrossTileIDs[tileID.overscaledZ];
 
         for (const zoom in this.indexes) {
@@ -281,7 +275,7 @@ class CrossTileSymbolLayerIndex {
         return true;
     }
 
-    removeBucketCrossTileIDs(zoom: string | number, removedBucket: TileLayerIndex) {
+    removeBucketCrossTileIDs(zoom: string | number, removedBucket: TileLayerIndex): void {
         for (const crossTileIDs of removedBucket.getCrossTileIDsLists()) {
             for (const crossTileID of crossTileIDs) {
                 delete this.usedCrossTileIDs[zoom][crossTileID];
@@ -291,7 +285,7 @@ class CrossTileSymbolLayerIndex {
 
     removeStaleBuckets(currentIDs: {
         [k in string | number]: boolean;
-    }) {
+    }): boolean {
         let tilesChanged = false;
         for (const z in this.indexes) {
             const zoomIndexes = this.indexes[z];
@@ -320,7 +314,7 @@ export class CrossTileSymbolIndex {
         this.bucketsInCurrentPlacement = {};
     }
 
-    addLayer(styleLayer: StyleLayer, tiles: Array<Tile>, lng: number) {
+    addLayer(styleLayer: StyleLayer, tiles: Tile[], lng: number): boolean {
         let layerIndex = this.layerIndexes[styleLayer.id];
         if (layerIndex === undefined) {
             layerIndex = this.layerIndexes[styleLayer.id] = new CrossTileSymbolLayerIndex();
@@ -333,11 +327,12 @@ export class CrossTileSymbolIndex {
 
         for (const tile of tiles) {
             const symbolBucket = (tile.getBucket(styleLayer) as any as SymbolBucket);
-            if (!symbolBucket || styleLayer.id !== symbolBucket.layerIds[0])
+            if (styleLayer.id !== symbolBucket?.layerIds[0])
                 continue;
 
             if (!symbolBucket.bucketInstanceId) {
-                symbolBucket.bucketInstanceId = ++this.maxBucketInstanceId;
+                this.maxBucketInstanceId += 1;
+                symbolBucket.bucketInstanceId = this.maxBucketInstanceId;
             }
 
             if (layerIndex.addBucket(tile.tileID, symbolBucket, this.crossTileIDs)) {
@@ -353,11 +348,11 @@ export class CrossTileSymbolIndex {
         return symbolBucketsChanged;
     }
 
-    pruneUnusedLayers(usedLayers: Array<string>) {
+    pruneUnusedLayers(usedLayers: string[]): void {
         const usedLayerMap = {};
-        usedLayers.forEach((usedLayer) => {
+        for (const usedLayer of usedLayers) {
             usedLayerMap[usedLayer] = true;
-        });
+        }
         for (const layerId in this.layerIndexes) {
             if (!usedLayerMap[layerId]) {
                 delete this.layerIndexes[layerId];

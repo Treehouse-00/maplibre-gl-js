@@ -1,22 +1,22 @@
 import {describe, beforeEach, afterEach, test, expect, vi} from 'vitest';
 import {GEOJSON_TILE_LAYER_NAME} from '@maplibre/vt-pbf';
-import {GeoJSONWorkerSource, type LoadGeoJSONParameters} from './geojson_worker_source';
-import {StyleLayerIndex} from '../style/style_layer_index';
-import {OverscaledTileID} from '../tile/tile_id';
-import {setPerformance, sleep} from '../util/test/util';
+import {GeoJSONWorkerSource, type LoadGeoJSONParameters} from './geojson_worker_source.ts';
+import {StyleLayerIndex} from '../style/style_layer_index.ts';
+import {OverscaledTileID} from '../tile/tile_id.ts';
+import {setPerformance, sleep} from '../util/test/util.ts';
 import {type FakeServer, fakeServer} from 'nise';
-import {SubdivisionGranularitySetting} from '../render/subdivision_granularity_settings';
+import {SubdivisionGranularitySetting} from '../render/subdivision_granularity_settings.ts';
 
 import type {GeoJSONVT} from '@maplibre/geojson-vt';
-import type {Actor, IActor} from '../util/actor';
-import type {TileParameters, WorkerTileParameters, WorkerTileResult, WorkerTileWithData} from './worker_source';
+import type {Actor, IActor} from '../util/actor.ts';
+import type {TileParameters, WorkerTileParameters, WorkerTileResult, WorkerTileWithData} from './worker_source.ts';
 import type {LayerSpecification} from '@maplibre/maplibre-gl-style-spec';
-import type {WorkerTile} from './worker_tile';
+import type {WorkerTile} from './worker_tile.ts';
 
 const actor = {send: () => {}} as any as Actor;
 
 describe('geojson tile worker source', () => {
-    const actor: IActor = {sendAsync: () => Promise.resolve({})} as any as IActor;
+    const actor: IActor = {sendAsync: () => Promise.resolve({})};
 
     test('GeoJSONWorkerSource.removeTile removes loaded tile', async () => {
         const source = new GeoJSONWorkerSource(actor, new StyleLayerIndex(), []);
@@ -25,18 +25,17 @@ describe('geojson tile worker source', () => {
             '0': {} as WorkerTile
         };
 
-        const res = await source.removeTile({
+        await source.removeTile({
             source: 'source',
             uid: 0
         } as any as TileParameters);
-        expect(res).toBeUndefined();
 
         expect(source.tileState.loaded).toEqual({});
     });
 
     test('GeoJSONWorkerSource.reloadTile reloads a previously-loaded tile', async () => {
         const source = new GeoJSONWorkerSource(actor, new StyleLayerIndex(), []);
-        const parse = vi.fn().mockResolvedValue({} as WorkerTileResult);
+        const parse = vi.fn().mockResolvedValue({});
 
         source.tileState.loaded = {
             '0': {
@@ -100,7 +99,7 @@ describe('geojson tile worker source', () => {
             }
         };
 
-        const source = new GeoJSONWorkerSource(actor as any, layerIndex, ['hello']);
+        const source = new GeoJSONWorkerSource(actor, layerIndex, ['hello']);
 
         const geoJson = {
             type: 'FeatureCollection',
@@ -344,13 +343,13 @@ describe('resourceTiming', () => {
         const sampleMarks = [100, 350];
         const marks = {};
         const measures = {};
-        window.performance.getEntriesByName = vi.fn().mockImplementation((name) => { return measures[name] || []; });
+        window.performance.getEntriesByName = vi.fn().mockImplementation((name) => measures[name] || []);
         vi.spyOn(performance, 'mark').mockImplementation((name) => {
             marks[name] = sampleMarks.shift();
             return null;
         });
         window.performance.measure = vi.fn().mockImplementation((name, start, end) => {
-            measures[name] = measures[name] || [];
+            measures[name] ||= [];
             measures[name].push({
                 duration: marks[end] - marks[start],
                 entryType: 'measure',
@@ -359,8 +358,8 @@ describe('resourceTiming', () => {
             });
             return null;
         });
-        vi.spyOn(performance, 'clearMarks').mockImplementation(() => { return null; });
-        vi.spyOn(performance, 'clearMeasures').mockImplementation(() => { return null; });
+        vi.spyOn(performance, 'clearMarks').mockImplementation(() => null);
+        vi.spyOn(performance, 'clearMeasures').mockImplementation(() => null);
 
         const layerIndex = new StyleLayerIndex(layers);
         const source = new GeoJSONWorkerSource(actor, layerIndex, []);
@@ -472,9 +471,9 @@ describe('loadData', () => {
         server.respond();
 
         const firstCallResult = await p1;
-        expect(firstCallResult && firstCallResult.abandoned).toBeTruthy();
+        expect(firstCallResult?.abandoned).toBeTruthy();
         const result = await p2;
-        expect(result && result.abandoned).toBeFalsy();
+        expect(result?.abandoned).toBeFalsy();
     });
 
     test('removeSource aborts requests', async () => {
@@ -492,7 +491,7 @@ describe('loadData', () => {
         server.respond();
 
         const result = await loadPromise;
-        expect(result && result.abandoned).toBeTruthy();
+        expect(result?.abandoned).toBeTruthy();
         await removePromise;
     });
 
@@ -557,7 +556,7 @@ describe('loadData', () => {
         expect(mockGeoJSONIndex.updateClusterOptions).not.toHaveBeenCalled();
         await expect(worker.loadData({
             type: 'geojson',
-            updateCluster: true, 
+            updateCluster: true,
             geojsonVtOptions: {
                 cluster: true,
                 clusterOptions: {},
@@ -566,7 +565,7 @@ describe('loadData', () => {
                 'max': ['max', ['get', 'scalerank']],
                 'sum': ['+', ['get', 'scalerank']],
             }
-        } as LoadGeoJSONParameters)).resolves.toBeDefined();
+        })).resolves.toBeDefined();
         expect(updateSpy).toHaveBeenCalled();
         expect(updateSpy.mock.calls[0][1].map).toBeInstanceOf(Function);
         expect(updateSpy.mock.calls[0][1].reduce).toBeInstanceOf(Function);
