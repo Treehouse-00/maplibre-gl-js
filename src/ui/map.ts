@@ -76,7 +76,31 @@ const version = packageJSON.version;
 export type ContextType = 'webgl2';
 /** @deprecated Use {@link ContextType} instead. */
 export type WebGLSupportedVersions = ContextType | undefined;
-export type WebGLContextAttributesWithType = WebGLContextAttributes & {contextType?: ContextType};
+export type WebGLContextAttributesWithType = WebGLContextAttributes & {
+    contextType?: ContextType;
+    /**
+     * Color space for the WebGL drawing buffer (waev fork extension).
+     *
+     * When set to `'display-p3'`, the map's drawing buffer is tagged
+     * wide-gamut via `gl.drawingBufferColorSpace` after context creation,
+     * so paint values reach the full P3 gamut on capable displays.
+     *
+     * IMPORTANT semantics: MapLibre does NOT color-manage paint values —
+     * style colors are uploaded numerically as authored.  Under a P3
+     * buffer they are therefore REINTERPRETED as display-p3 coordinates
+     * (an sRGB-authored `#00ff24` renders as `color(display-p3 0 1 0.141)`).
+     * This is the intended contract for styles whose chromatic palette is
+     * deliberately authored at gamut-max primaries with sRGB fallbacks
+     * (e.g. the waev indicator family); near-neutral colors are visually
+     * unchanged (achromatic coordinates coincide across the two spaces).
+     * Styles with curated mid-gamut chroma should NOT opt in.
+     *
+     * Silently falls back to `'srgb'` on browsers without
+     * `drawingBufferColorSpace` support (e.g. Firefox).
+     * @defaultValue undefined (drawing buffer stays `'srgb'`)
+     */
+    colorSpace?: PredefinedColorSpace;
+};
 
 /**
  * The {@link Map} options object.
@@ -3489,6 +3513,22 @@ export class Map extends Camera {
         if (!gl) {
             this.fire(new ErrorEvent(new GPUInitializationError(attributes, creationEvent)));
             return;
+        }
+
+        // Wide-gamut drawing buffer (waev fork extension) — see the
+        // `colorSpace` docs on WebGLContextAttributesWithType for the
+        // reinterpretation semantics.  Applied AFTER context creation
+        // (it is a context property, not a creation attribute); feature-
+        // detected so unsupported browsers stay on the sRGB default.
+        // Re-applied automatically on context restore because
+        // _contextRestored() routes back through this method.
+        const requestedColorSpace = this._canvasContextAttributes.colorSpace;
+        if (requestedColorSpace && requestedColorSpace !== 'srgb' && 'drawingBufferColorSpace' in gl) {
+            try {
+                gl.drawingBufferColorSpace = requestedColorSpace;
+            } catch {
+                // Unsupported enum value on this browser — buffer stays sRGB.
+            }
         }
 
         this.painter = new Painter(gl, this.transform);
