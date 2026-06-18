@@ -42,7 +42,9 @@ import hillshadeVert from './glsl/hillshade.vertex.glsl.g.ts';
 import pointHillshadeFrag from './glsl/point_hillshade.fragment.glsl.g.ts';
 import pointHillshadeVert from './glsl/point_hillshade.vertex.glsl.g.ts';
 import pointHillshadeSurfaceFrag from './glsl/point_hillshade_surface.fragment.glsl.g.ts';
-import pointHillshadeViewshedPrepareFrag from './glsl/point_hillshade_viewshed_prepare.fragment.glsl.g.ts';
+import pointHillshadeCoveragePrepareFrag from './glsl/point_hillshade_coverage_prepare.fragment.glsl.g.ts';
+import pointHillshadeCoveragePrepareVert from './glsl/point_hillshade_coverage_prepare.vertex.glsl.g.ts';
+import pointHillshadeCompositeFrag from './glsl/point_hillshade_composite.fragment.glsl.g.ts';
 import lineFrag from './glsl/line.fragment.glsl.g.ts';
 import lineVert from './glsl/line.vertex.glsl.g.ts';
 import lineGradientFrag from './glsl/line_gradient.fragment.glsl.g.ts';
@@ -110,7 +112,8 @@ export const shaders: {
     hillshade: PreparedShader;
     pointHillshade: PreparedShader;
     pointHillshadeSurface: PreparedShader;
-    pointHillshadeViewshedPrepare: PreparedShader;
+    pointHillshadeCoveragePrepare: PreparedShader;
+    pointHillshadeComposite: PreparedShader;
     line: PreparedShader;
     lineGradient: PreparedShader;
     linePattern: PreparedShader;
@@ -152,7 +155,8 @@ export const shaders: {
     hillshade: prepare(hillshadeFrag, hillshadeVert),
     pointHillshade: prepare(pointHillshadeFrag, pointHillshadeVert),
     pointHillshadeSurface: prepare(pointHillshadeSurfaceFrag, pointHillshadeVert),
-    pointHillshadeViewshedPrepare: prepare(pointHillshadeViewshedPrepareFrag, hillshadePrepareVert),
+    pointHillshadeCoveragePrepare: prepare(pointHillshadeCoveragePrepareFrag, pointHillshadeCoveragePrepareVert),
+    pointHillshadeComposite: prepare(pointHillshadeCompositeFrag, pointHillshadeVert),
     line: prepare(lineFrag, lineVert),
     lineGradient: prepare(lineGradientFrag, lineGradientVert),
     linePattern: prepare(linePatternFrag, linePatternVert),

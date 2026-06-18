@@ -7,7 +7,8 @@ import {heatmapUniforms, heatmapTextureUniforms, type HeatmapUniformsType, type 
 import {hillshadeUniforms, hillshadePrepareUniforms, type HillshadeUniformsType, type HillshadePrepareUniformsType} from './hillshade_program.ts';
 import {pointHillshadeUniforms, type PointHillshadeUniformsType} from './point_hillshade_program.ts';
 import {pointHillshadeSurfaceUniforms, type PointHillshadeSurfaceUniformsType} from './point_hillshade_surface_program.ts';
-import {pointHillshadeViewshedPrepareUniforms, type PointHillshadeViewshedPrepareUniformsType} from './point_hillshade_viewshed_prepare_program.ts';
+import {pointHillshadeCoveragePrepareUniforms, type PointHillshadeCoveragePrepareUniformsType} from './point_hillshade_coverage_prepare_program.ts';
+import {pointHillshadeCompositeUniforms, type PointHillshadeCompositeUniformsType} from './point_hillshade_composite_program.ts';
 import {colorReliefUniforms, type ColorReliefUniformsType} from './color_relief_program.ts';
 import {lineUniforms, lineGradientUniforms, linePatternUniforms, lineSDFUniforms, lineGradientSDFUniforms, lineTextureUniforms, type LineUniformsType, type LineGradientUniformsType, type LinePatternUniformsType, type LineSDFUniformsType, type LineGradientSDFUniformsType, type LineTextureUniformsType} from './line_program.ts';
 import {rasterUniforms, type RasterUniformsType} from './raster_program.ts';
@@ -41,7 +42,8 @@ export const programUniforms: {
     hillshadePrepare: (context: Context, locations: UniformLocations) => HillshadePrepareUniformsType;
     pointHillshade: (context: Context, locations: UniformLocations) => PointHillshadeUniformsType;
     pointHillshadeSurface: (context: Context, locations: UniformLocations) => PointHillshadeSurfaceUniformsType;
-    pointHillshadeViewshedPrepare: (context: Context, locations: UniformLocations) => PointHillshadeViewshedPrepareUniformsType;
+    pointHillshadeCoveragePrepare: (context: Context, locations: UniformLocations) => PointHillshadeCoveragePrepareUniformsType;
+    pointHillshadeComposite: (context: Context, locations: UniformLocations) => PointHillshadeCompositeUniformsType;
     colorRelief: (context: Context, locations: UniformLocations) => ColorReliefUniformsType;
     line: (context: Context, locations: UniformLocations) => LineUniformsType;
     lineGradient: (context: Context, locations: UniformLocations) => LineGradientUniformsType;
@@ -80,7 +82,8 @@ export const programUniforms: {
     hillshadePrepare: hillshadePrepareUniforms,
     pointHillshade: pointHillshadeUniforms,
     pointHillshadeSurface: pointHillshadeSurfaceUniforms,
-    pointHillshadeViewshedPrepare: pointHillshadeViewshedPrepareUniforms,
+    pointHillshadeCoveragePrepare: pointHillshadeCoveragePrepareUniforms,
+    pointHillshadeComposite: pointHillshadeCompositeUniforms,
     colorRelief: colorReliefUniforms,
     line: lineUniforms,
     lineGradient: lineGradientUniforms,

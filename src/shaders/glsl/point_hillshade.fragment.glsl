@@ -15,9 +15,10 @@ uniform float u_ambient;
 uniform sampler2D u_coverageTex;
 uniform int u_lightCount;
 
-// Multi-light data: RGBA32F float texture, 2 texels per light.
-//   texel 2i   : (mercX, mercY, radiusMerc, heightMerc)
-//   texel 2i+1 : (colorR, colorG, colorB, diffuse)
+// Multi-light data: RGBA32F float texture, 3 texels per light.
+//   texel 3i   : (mercX, mercY, radiusMerc, heightMerc)
+//   texel 3i+1 : (colorR, colorG, colorB, diffuse)
+//   texel 3i+2 : (marginD0, _, _, _)
 // All values are mercator-space (tile-independent); the draw pass folds
 // the per-tile transform into the UBO below.
 uniform highp sampler2D u_lightTex;
@@ -33,10 +34,98 @@ layout(std140) uniform LightGlobals {
 };
 
 #define PI 3.141592653589793
+#define MARCH_STEPS 32
 
-// Raw derivative decode (uncorrected, for occlusion probes).
-vec2 sampleDeriv(vec2 pos, float exaggeration) {
-    return (texture(u_image, pos).rg * 8.0 - 4.0) * exaggeration * 2.0;
+// Derivative decode with the hillshade-prepare zoom exaggeration undone, so
+// the sightline march reads consistent physical slopes at any DEM zoom.
+vec2 sampleDerivZoom(vec2 pos, float exaggeration, float zoomCorrection) {
+    return (texture(u_image, pos).rg * 8.0 - 4.0) * zoomCorrection * exaggeration * 2.0;
+}
+
+// Invert hillshade-prepare's zoom-dependent vertical exaggeration for a tile
+// zoom, so the horizon march is consistent across DEM zoom levels.
+float computeZoomCorrection(float zoom) {
+    float exaggerationFactor = zoom < 2.0 ? 0.4 : zoom < 4.5 ? 0.35 : 0.3;
+    float hillshadeExagg = zoom < 15.0 ? (zoom - 15.0) * exaggerationFactor : 0.0;
+    return pow(2.0, -hillshadeExagg);
+}
+
+// Slope-integrated horizon march toward a light.  Returns terrain visibility
+// in [0,1]: 1 = clear sightline, 0 = blocked by an intervening ridge.  Ported
+// from the viewshed-prepare pass: integrate the zoom-normalized derivative
+// along the ray to reconstruct the relative rise, track the max horizon angle,
+// and shadow the texel when a ridge rises above the line to the node antenna.
+// Tile-edge feathered (the march clamps at tile boundaries) and early-outs
+// once the texel is unambiguously shadowed.
+float marchVisibility(vec2 marchDir, float dist2D, float lightHeight,
+                      float exaggeration, float zoomCorrection) {
+    // 3 ft AGL (0.9144 m) node antenna -- matches the RF model's RF_DEFAULT_AGL_M.
+    // lightHeight encodes 3 m in tile units, so scale to 0.9144 m.
+    float shadowHeight = lightHeight * (0.9144 / 3.0);
+    float edgeDist = min(min(v_pos.x, 1.0 - v_pos.x), min(v_pos.y, 1.0 - v_pos.y));
+    float edgeConfidence = smoothstep(0.0, 0.04, edgeDist);
+
+    float marchLen = min(dist2D, 0.45);
+    float stepSize = marchLen / float(MARCH_STEPS);
+    float nodeAngle = atan(shadowHeight, max(dist2D, 1e-5));
+
+    float maxHorizon = -PI;
+    float accumH = 0.0;
+    vec2 prevDeriv = sampleDerivZoom(v_pos, exaggeration, zoomCorrection);
+    for (int i = 1; i <= MARCH_STEPS; i++) {
+        float marchDist = stepSize * float(i);
+        vec2 currDeriv = sampleDerivZoom(v_pos + marchDir * marchDist, exaggeration, zoomCorrection);
+        accumH += dot((prevDeriv + currDeriv) * 0.5, marchDir) * stepSize;
+        maxHorizon = max(maxHorizon, atan(accumH, marchDist));
+        prevDeriv = currDeriv;
+        if (maxHorizon > nodeAngle + 0.05) break;   // unambiguously shadowed
+    }
+    float rawVisibility = smoothstep(-0.008, 0.008, nodeAngle - maxHorizon);
+    return mix(1.0, rawVisibility, edgeConfidence);
+}
+
+// ── SNR/RSSI spectrum colour ramp ──────────────────────────────────
+// MIRROR of SPECTRUM_HEX (frontend/src/components/map/map-geo.ts) and
+// SPECTRUM_BREAKPOINTS (shared/lora-radio.ts) -- keep in sync if either
+// table moves.  16 colours (red sig-0 -> green sig-15) keyed by the link
+// margin (dB) at each breakpoint, so the per-texel RF margin reads green
+// (strong) near a node -> red (weak) at the fringe, mesh-agnostic.
+const vec3 SPECTRUM[16] = vec3[16](
+    vec3(0.945, 0.259, 0.329), vec3(0.965, 0.310, 0.298),
+    vec3(0.980, 0.361, 0.267), vec3(0.992, 0.412, 0.239),
+    vec3(1.000, 0.486, 0.141), vec3(1.000, 0.565, 0.000),
+    vec3(1.000, 0.639, 0.000), vec3(0.980, 0.718, 0.000),
+    vec3(0.945, 0.749, 0.000), vec3(0.902, 0.780, 0.000),
+    vec3(0.843, 0.816, 0.000), vec3(0.773, 0.851, 0.000),
+    vec3(0.694, 0.890, 0.000), vec3(0.580, 0.929, 0.000),
+    vec3(0.392, 0.973, 0.039), vec3(0.000, 1.000, 0.251)
+);
+const float SPECBP[16] = float[16](
+    -1.0e30, -6.0, -4.0, -2.0, 0.0, 1.5, 3.0, 4.5,
+     6.0, 8.0, 10.0, 12.0, 15.0, 18.0, 21.0, 25.0
+);
+
+// Smoothly interpolate the spectrum by link margin (dB).
+vec3 spectrumColor(float margin) {
+    if (margin < SPECBP[1]) return SPECTRUM[0];
+    if (margin >= SPECBP[15]) return SPECTRUM[15];
+    for (int i = 1; i < 15; i++) {
+        if (margin < SPECBP[i + 1]) {
+            float t = (margin - SPECBP[i]) / (SPECBP[i + 1] - SPECBP[i]);
+            return mix(SPECTRUM[i], SPECTRUM[i + 1], t);
+        }
+    }
+    return SPECTRUM[15];
+}
+
+// Per-texel RF link margin (dB) from a light's d0 margin + the radial
+// distance.  lightHeight encodes 3 m AGL in the SAME tile units as dist2D,
+// so distM = 3 * dist2D / lightHeight; then
+//   margin(distM) = marginD0 - 10*N*log10(max(distM, d0)/d0),  N=3.5, d0=1km.
+float rfMargin(float marginD0, float dist2D, float lightHeight) {
+    float distM = 3.0 * dist2D / max(lightHeight, 1e-9);
+    float decades = log(max(distM, 1000.0) / 1000.0) * 0.4342944819032518;
+    return marginD0 - 35.0 * decades;
 }
 
 // Per-light terrain-occluded contribution. This is the exact math of the
@@ -45,7 +134,8 @@ vec2 sampleDeriv(vec2 pos, float exaggeration) {
 vec4 coverageLight(
     highp vec2 lightCenter, vec3 lightColor, highp float falloffRadius,
     highp float lightHeight, float diffuse, float exaggeration, float ambient,
-    vec3 N, float slopeStrength, float accentStrength
+    vec3 N, float slopeStrength, float accentStrength, float marginD0,
+    float zoomCorrection
 ) {
     vec2 toLight = lightCenter - v_pos;
     float dist2D = length(toLight);
@@ -60,32 +150,10 @@ vec4 coverageLight(
     float NdotL = max(dot(N, L), 0.0);
     float shade = smoothstep(0.0, 0.45, NdotL);
 
-    // Terrain occlusion probes toward the light.
-    // Near-field (5 probes): local ridges and slopes.
-    vec2 d1 = sampleDeriv(v_pos + ld * 0.004, exaggeration);
-    vec2 d2 = sampleDeriv(v_pos + ld * 0.010, exaggeration);
-    vec2 d3 = sampleDeriv(v_pos + ld * 0.025, exaggeration);
-    vec2 d4 = sampleDeriv(v_pos + ld * 0.050, exaggeration);
-    vec2 d5 = sampleDeriv(v_pos + ld * 0.080, exaggeration);
-
-    float dirOcc = max(dot(d1, ld), 0.0)
-                 + max(dot(d2, ld), 0.0) * 0.8
-                 + max(dot(d3, ld), 0.0) * 0.6
-                 + max(dot(d4, ld), 0.0) * 0.4
-                 + max(dot(d5, ld), 0.0) * 0.2;
-
-    // Mid-range probes: larger terrain features at 15-40 km scale.
-    vec2 d6 = sampleDeriv(v_pos + ld * 0.15, exaggeration);
-    vec2 d7 = sampleDeriv(v_pos + ld * 0.25, exaggeration);
-    dirOcc += max(dot(d6, ld), 0.0) * 0.35
-            + max(dot(d7, ld), 0.0) * 0.25;
-
-    float steepness = (length(d1) + length(d2) + length(d3)
-                     + length(d4) + length(d5)) * 0.2;
-    float heightBlock = smoothstep(0.3, 1.5, steepness);
-
-    float occ = (1.0 - smoothstep(0.0, 1.0, dirOcc))
-              * (1.0 - heightBlock * 0.6);
+    // Raytrace-precise terrain occlusion: a slope-integrated horizon march
+    // toward the light, replacing the old 7-probe slope heuristic.  occ is
+    // terrain visibility [0,1] -- 1 clear, 0 blocked by an intervening ridge.
+    float occ = marchVisibility(ld, dist2D, lightHeight, exaggeration, zoomCorrection);
 
     // Compositing (shared by selected-node and coverage)
     float highlight = shade * slopeStrength * occ * diffuse;
@@ -96,7 +164,14 @@ vec4 coverageLight(
     float slopeAlpha = slopeStrength * 0.55 + glow * 0.6;
     float alpha = min((slopeAlpha + ambient * 0.11) * atten, 0.60);
 
-    return vec4(lightColor * raw, alpha);
+    // Headline colour: mesh-agnostic RF margin on the SNR/RSSI spectrum (green
+    // strong near the node -> red weak at the fringe).  The selected-node
+    // single-light path passes a sentinel marginD0 and keeps lightColor.
+    vec3 col = lightColor;
+    if (marginD0 > -1.0e29) {
+        col = spectrumColor(rfMargin(marginD0, dist2D, lightHeight));
+    }
+    return vec4(col * raw, alpha);
 }
 
 void main() {
@@ -127,26 +202,30 @@ void main() {
         // per-light GL_MAX blend, but order-independent and blow-out free.
         highp float tilesAtZoom = u_lg0.x;
         highp vec2  tileOrigin  = u_lg0.yz;
+        float zoomCorrection = computeZoomCorrection(log2(tilesAtZoom));
         vec3 accumColor = vec3(0.0);
         float accumAlpha = 0.0;
         for (int i = 0; i < u_lightCount; i++) {
-            highp vec4 a = texelFetch(u_lightTex, ivec2(i * 2, 0), 0);
-            vec4 b = texelFetch(u_lightTex, ivec2(i * 2 + 1, 0), 0);
+            highp vec4 a = texelFetch(u_lightTex, ivec2(i * 3, 0), 0);
+            vec4 b = texelFetch(u_lightTex, ivec2(i * 3 + 1, 0), 0);
+            highp vec4 cdata = texelFetch(u_lightTex, ivec2(i * 3 + 2, 0), 0);
             highp vec2 lightCenter = a.xy * tilesAtZoom - tileOrigin;
             highp float falloffRadius = a.z * tilesAtZoom;
             highp float lightHeight = a.w * tilesAtZoom;
-            vec4 c = coverageLight(lightCenter, b.rgb, falloffRadius,
+            vec4 contrib = coverageLight(lightCenter, b.rgb, falloffRadius,
                 lightHeight, b.a, exaggeration, ambient,
-                N, slopeStrength, accentStrength);
-            accumColor = max(accumColor, c.rgb);
-            accumAlpha = max(accumAlpha, c.a);
+                N, slopeStrength, accentStrength, cdata.x, zoomCorrection);
+            accumColor = max(accumColor, contrib.rgb);
+            accumAlpha = max(accumAlpha, contrib.a);
         }
         fragColor = vec4(accumColor, accumAlpha);
     } else {
-        // Single-light (selected-node localized light) -- unchanged.
+        // Single-light (selected-node localized light) -- keeps its own colour
+        // (sentinel marginD0 disables the spectrum map).  zoomCorrection 1.0:
+        // the focused single-light view doesn't plumb the tile zoom.
         fragColor = coverageLight(u_lightCenter, u_lightColor, u_falloffRadius,
             u_lightHeight, u_diffuse, exaggeration, ambient,
-            N, slopeStrength, accentStrength);
+            N, slopeStrength, accentStrength, -1.0e30, 1.0);
     }
 
     if (fragColor.a < 0.004) discard;

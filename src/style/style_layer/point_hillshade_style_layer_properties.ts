@@ -23,6 +23,8 @@ export type PointHillshadePaintProps = {
     'point-hillshade-intensity': DataConstantProperty<number>;
     'point-hillshade-exaggeration': DataConstantProperty<number>;
     'point-hillshade-surface-opacity': DataConstantProperty<number>;
+    'point-hillshade-shadow-sigma': DataConstantProperty<number>;
+    'point-hillshade-coverage-view': DataConstantProperty<number>;
 };
 
 export type PointHillshadePaintPropsPossiblyEvaluated = {
@@ -32,6 +34,8 @@ export type PointHillshadePaintPropsPossiblyEvaluated = {
     'point-hillshade-intensity': number;
     'point-hillshade-exaggeration': number;
     'point-hillshade-surface-opacity': number;
+    'point-hillshade-shadow-sigma': number;
+    'point-hillshade-coverage-view': number;
 };
 
 // ── Inline property specifications ───────────────────────────────────────────
@@ -88,6 +92,29 @@ const specs: Record<string, StylePropertySpecification> = {
         expression: {interpolated: true, parameters: ['zoom']},
         'property-type': 'data-constant',
     } as any,
+    // Log-normal shadowing std-dev (dB) for the probability-of-coverage
+    // confidence -- the render-only confidence knob (default mirrors
+    // coverage_core SHADOW_SIGMA_DB = 8).
+    'point-hillshade-shadow-sigma': {
+        type: 'number',
+        default: 8,
+        minimum: 0.5,
+        maximum: 12,
+        transition: true,
+        expression: {interpolated: true, parameters: ['zoom']},
+        'property-type': 'data-constant',
+    } as any,
+    // Coverage view mode: 0 = signal heatmap (confidence as translucency),
+    // 1 = confidence reliability recolor.  Discrete, so no transition.
+    'point-hillshade-coverage-view': {
+        type: 'number',
+        default: 0,
+        minimum: 0,
+        maximum: 1,
+        transition: false,
+        expression: {interpolated: false, parameters: ['zoom']},
+        'property-type': 'data-constant',
+    } as any,
 };
 
 // ── Properties singleton ─────────────────────────────────────────────────────
@@ -100,6 +127,8 @@ const getPaint = () => paint ||= new Properties({
     'point-hillshade-intensity': new DataConstantProperty(specs['point-hillshade-intensity']),
     'point-hillshade-exaggeration': new DataConstantProperty(specs['point-hillshade-exaggeration']),
     'point-hillshade-surface-opacity': new DataConstantProperty(specs['point-hillshade-surface-opacity']),
+    'point-hillshade-shadow-sigma': new DataConstantProperty(specs['point-hillshade-shadow-sigma']),
+    'point-hillshade-coverage-view': new DataConstantProperty(specs['point-hillshade-coverage-view']),
 });
 
 export default ({get paint(): Properties<PointHillshadePaintProps> { return getPaint(); }});
