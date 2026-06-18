@@ -25,6 +25,9 @@ export type PointHillshadePaintProps = {
     'point-hillshade-surface-opacity': DataConstantProperty<number>;
     'point-hillshade-shadow-sigma': DataConstantProperty<number>;
     'point-hillshade-coverage-view': DataConstantProperty<number>;
+    'point-hillshade-ramp-lo': DataConstantProperty<number>;
+    'point-hillshade-ramp-hi': DataConstantProperty<number>;
+    'point-hillshade-contours': DataConstantProperty<number>;
 };
 
 export type PointHillshadePaintPropsPossiblyEvaluated = {
@@ -36,6 +39,9 @@ export type PointHillshadePaintPropsPossiblyEvaluated = {
     'point-hillshade-surface-opacity': number;
     'point-hillshade-shadow-sigma': number;
     'point-hillshade-coverage-view': number;
+    'point-hillshade-ramp-lo': number;
+    'point-hillshade-ramp-hi': number;
+    'point-hillshade-contours': number;
 };
 
 // ── Inline property specifications ───────────────────────────────────────────
@@ -105,10 +111,37 @@ const specs: Record<string, StylePropertySpecification> = {
         'property-type': 'data-constant',
     } as any,
     // Coverage view mode: 0 = signal heatmap (confidence as translucency),
-    // 1 = confidence reliability recolor.  Discrete, so no transition.
+    // 1 = confidence reliability recolor, 2 = best-server hues.  Discrete, no transition.
     'point-hillshade-coverage-view': {
         type: 'number',
         default: 0,
+        minimum: 0,
+        maximum: 2,
+        transition: false,
+        expression: {interpolated: false, parameters: ['zoom']},
+        'property-type': 'data-constant',
+    } as any,
+    // Signal heatmap DISPLAY window (dB) -- the render-only colour domain the
+    // composite stretches the incandescent ramp over (u_rampLo..u_rampHi).
+    // Distinct from the fixed encode window; recolor only, zero re-bake.
+    'point-hillshade-ramp-lo': {
+        type: 'number',
+        default: -6,
+        transition: true,
+        expression: {interpolated: true, parameters: ['zoom']},
+        'property-type': 'data-constant',
+    } as any,
+    'point-hillshade-ramp-hi': {
+        type: 'number',
+        default: 60,
+        transition: true,
+        expression: {interpolated: true, parameters: ['zoom']},
+        'property-type': 'data-constant',
+    } as any,
+    // Coverage isolines on/off (1/0): render-only SPLAT-ring overlay toggle.
+    'point-hillshade-contours': {
+        type: 'number',
+        default: 1,
         minimum: 0,
         maximum: 1,
         transition: false,
@@ -129,6 +162,9 @@ const getPaint = () => paint ||= new Properties({
     'point-hillshade-surface-opacity': new DataConstantProperty(specs['point-hillshade-surface-opacity']),
     'point-hillshade-shadow-sigma': new DataConstantProperty(specs['point-hillshade-shadow-sigma']),
     'point-hillshade-coverage-view': new DataConstantProperty(specs['point-hillshade-coverage-view']),
+    'point-hillshade-ramp-lo': new DataConstantProperty(specs['point-hillshade-ramp-lo']),
+    'point-hillshade-ramp-hi': new DataConstantProperty(specs['point-hillshade-ramp-hi']),
+    'point-hillshade-contours': new DataConstantProperty(specs['point-hillshade-contours']),
 });
 
 export default ({get paint(): Properties<PointHillshadePaintProps> { return getPaint(); }});

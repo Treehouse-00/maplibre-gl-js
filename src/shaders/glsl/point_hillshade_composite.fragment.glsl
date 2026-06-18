@@ -1,7 +1,7 @@
 // Coverage composite (per-frame, cheap) -- the SHADING half of the deferred
 // pipeline.  The prepare pass baked a DATA field into u_coverageTex (one cached
 // RGBA RT per tile): R = margin01 (link margin, normalised over RAMP_LO..RAMP_HI),
-// G = presence (range x LOS x reach), B = serverId (reserved), A = reserved.
+// G = presence (range x LOS x reach), B = serverId (best-server wheel slot), A.
 // Here we OWN the look: reconstruct the margin, map it onto the RF composite
 // heatmap, and premultiply by presence x opacity, then alpha-blend over the
 // basemap (ColorMode.alphaBlended) as one cohesive translucent layer.  The
@@ -15,12 +15,19 @@ uniform float u_surfaceOpacity;
 // hasn't baked yet -- DEM still loading) it picks the tile's sub-rect of the
 // coarser ancestor so coverage shows through instead of a hole.
 uniform vec3 u_coverageUV;
-// Confidence controls -- RENDER-ONLY (no re-bake):
-//   u_shadowSigma   log-normal shadowing std-dev (dB); the confidence knob.
-//   u_coverageView  0 = signal heatmap (confidence as translucency),
-//                   1 = confidence recolor (reliability ramp).
+// Render controls -- RENDER-ONLY (no re-bake):
+//   u_shadowSigma      log-normal shadowing std-dev (dB); the confidence knob.
+//   u_coverageView     0 = signal heatmap (confidence as translucency),
+//                      1 = confidence recolor, 2 = best-server hues.
+//   u_rampLo/u_rampHi  signal heatmap DISPLAY window (dB) -- the art-directable
+//                      colour domain; distinct from the fixed RAMP_LO/RAMP_HI
+//                      ENCODE window below (which must match the bake).
 uniform float u_shadowSigma;
 uniform int u_coverageView;
+uniform float u_rampLo;
+uniform float u_rampHi;
+// 1 = draw coverage isolines (signal dB rings / confidence % rings), 0 = hide.
+uniform int u_contours;
 
 in vec2 v_pos;
 
@@ -33,8 +40,8 @@ const float RAMP_HI = 64.0;
 // terminus: deep RED at the weak fringe → orange → amber → gold → yellow → pale
 // yellow → WHITE-HOT at the strongest core, so dense/overlapping strong signals
 // read as a smooth brighten-to-white instead of a flat saturated mass.  Stops
-// are evenly spaced over t = (margin - HEAT_LO) / (HEAT_HI - HEAT_LO); blended in
-// LINEAR light (the col*col / sqrt pair) so the gradient stays smooth.
+// are evenly spaced over t = (margin - u_rampLo) / (u_rampHi - u_rampLo); blended
+// in LINEAR light (the col*col / sqrt pair) so the gradient stays smooth.
 const int HEAT_N = 9;
 const vec3 HEAT[9] = vec3[9](
     vec3(0.62, 0.07, 0.08),  // 0.000 weak fringe   deep red    #9E1215
@@ -47,14 +54,12 @@ const vec3 HEAT[9] = vec3[9](
     vec3(1.00, 0.969,0.72),  // 0.875              pale yellow #FFF7B8
     vec3(1.00, 1.00, 0.969)  // 1.000 strong core  white-hot   #FFFFF7
 );
-// Margin (dB) mapped to the heatmap ends: HEAT_LO = the red fringe, HEAT_HI =
-// the white-hot core.  Spans most of the (now -10..64 dB) encode window so the
-// strong-signal range gets real gradation instead of clipping to one colour.
-const float HEAT_LO = -6.0;
-const float HEAT_HI = 60.0;
-
+// The heatmap ends map to the RENDER-ONLY display window u_rampLo (red fringe)
+// .. u_rampHi (white-hot core): a live paint uniform, so the operator can
+// stretch / compress the colour ramp with NO re-bake.  Guarded against a
+// zero-width window (max(..,1e-3)) so a degenerate slider pair can't divide by 0.
 vec3 heatColor(float margin) {
-    float t = clamp((margin - HEAT_LO) / (HEAT_HI - HEAT_LO), 0.0, 1.0);
+    float t = clamp((margin - u_rampLo) / max(u_rampHi - u_rampLo, 0.001), 0.0, 1.0);
     float f = t * float(HEAT_N - 1);
     int i = min(int(floor(f)), HEAT_N - 2);
     float w = smoothstep(0.0, 1.0, f - float(i));   // ease each segment
@@ -169,7 +174,7 @@ void main() {
         // wheel slot).  Link margin drives brightness so strong-served ground
         // reads brighter, and confidence still rides translucency like the
         // signal view so the views stay visually comparable.
-        float tHot = clamp((marginColor - HEAT_LO) / (HEAT_HI - HEAT_LO), 0.0, 1.0);
+        float tHot = clamp((marginColor - u_rampLo) / max(u_rampHi - u_rampLo, 0.001), 0.0, 1.0);
         col = serverColor(fld.b) * mix(0.5, 1.15, tHot);
         alpha = presence * mix(0.12, 1.0, pCov) * u_surfaceOpacity;
     } else {
@@ -178,7 +183,7 @@ void main() {
         col = heatColor(marginColor);
         // Incandescent bloom: past mid-strength the core keeps brightening toward
         // white so dense / overlapping strong signals read as brighten-to-terminus.
-        float tHot = clamp((marginColor - HEAT_LO) / (HEAT_HI - HEAT_LO), 0.0, 1.0);
+        float tHot = clamp((marginColor - u_rampLo) / max(u_rampHi - u_rampLo, 0.001), 0.0, 1.0);
         col *= 1.0 + 0.30 * smoothstep(0.5, 1.0, tHot);
         alpha = presence * mix(0.12, 1.0, pCov) * u_surfaceOpacity;
     }
@@ -193,9 +198,9 @@ void main() {
     //                     (the SPLAT .plo/.lcf analog).
     float covered = step(0.01, presence);
     float contour = 0.0;
-    if (u_coverageView == 1) {
+    if (u_contours == 1 && u_coverageView == 1) {
         contour = max(contourMask(pCov, 0.5), contourMask(pCov, 0.9));
-    } else if (u_coverageView == 0) {
+    } else if (u_contours == 1 && u_coverageView == 0) {
         contour = max(
             max(contourMask(margin, 20.0), contourMask(margin, 10.0)),
             max(contourMask(margin, 0.0), contourMask(margin, -6.0))

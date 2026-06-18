@@ -578,6 +578,9 @@ function drawCoverageMultiLight(
     const surfaceOpacity = layer.paint.get('point-hillshade-surface-opacity');
     const shadowSigma = layer.paint.get('point-hillshade-shadow-sigma');
     const coverageView = layer.paint.get('point-hillshade-coverage-view');
+    const rampLo = layer.paint.get('point-hillshade-ramp-lo');
+    const rampHi = layer.paint.get('point-hillshade-ramp-hi');
+    const contours = layer.paint.get('point-hillshade-contours');
 
     // Float-texture width caps the per-tile light count (3 texels/light).
     const maxLights = Math.max(1, Math.floor(context.maxTextureSize / 3));
@@ -622,7 +625,7 @@ function drawCoverageMultiLight(
         // the tile's own RT (0,0,1) or its sub-rect of an ancestor fallback.
         program.draw(context, gl.TRIANGLES, depthMode, stencilMode,
             ColorMode.alphaBlended, CullFaceMode.backCCW,
-            pointHillshadeCompositeUniformValues(surfaceOpacity, src.uv, shadowSigma, coverageView),
+            pointHillshadeCompositeUniformValues(surfaceOpacity, src.uv, shadowSigma, coverageView, rampLo, rampHi, contours),
             terrainData, projectionData, layer.id,
             mesh.vertexBuffer, mesh.indexBuffer, mesh.segments);
     }
@@ -653,6 +656,9 @@ function drawCoverageFromTiles(
     const surfaceOpacity = layer.paint.get('point-hillshade-surface-opacity');
     const shadowSigma = layer.paint.get('point-hillshade-shadow-sigma');
     const coverageView = layer.paint.get('point-hillshade-coverage-view');
+    const rampLo = layer.paint.get('point-hillshade-ramp-lo');
+    const rampHi = layer.paint.get('point-hillshade-ramp-hi');
+    const contours = layer.paint.get('point-hillshade-contours');
     const [stencil, coords] = painter.getStencilConfigForOverlapAndUpdateStencilID(tileIDs);
     const program = painter.useProgram('pointHillshadeComposite');
 
@@ -680,7 +686,7 @@ function drawCoverageFromTiles(
 
         program.draw(context, gl.TRIANGLES, depthMode, stencilMode,
             ColorMode.alphaBlended, CullFaceMode.backCCW,
-            pointHillshadeCompositeUniformValues(surfaceOpacity, [0, 0, 1], shadowSigma, coverageView),
+            pointHillshadeCompositeUniformValues(surfaceOpacity, [0, 0, 1], shadowSigma, coverageView, rampLo, rampHi, contours),
             terrainData, projectionData, layer.id,
             mesh.vertexBuffer, mesh.indexBuffer, mesh.segments);
     }
