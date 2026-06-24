@@ -35,27 +35,35 @@ in vec2 v_pos;
 const float RAMP_LO = -10.0;
 const float RAMP_HI = 64.0;
 
-// ── RF incandescent heatmap (weak → strong) -- tunable anchor stops ────────
-// A blackbody-style signal-strength scale that keeps BRIGHTENING toward the hot
-// terminus: deep RED at the weak fringe → orange → amber → gold → yellow → pale
-// yellow → WHITE-HOT at the strongest core, so dense/overlapping strong signals
-// read as a smooth brighten-to-white instead of a flat saturated mass.  Stops
-// are evenly spaced over t = (margin - u_rampLo) / (u_rampHi - u_rampLo); blended
-// in LINEAR light (the col*col / sqrt pair) so the gradient stays smooth.
-const int HEAT_N = 9;
-const vec3 HEAT[9] = vec3[9](
-    vec3(0.62, 0.07, 0.08),  // 0.000 weak fringe   deep red    #9E1215
-    vec3(0.80, 0.13, 0.125), // 0.125              red         #CC2120
-    vec3(0.90, 0.25, 0.125), // 0.250              red-orange  #E64020
-    vec3(0.957,0.42, 0.129), // 0.375              orange      #F46B21
-    vec3(0.992,0.60, 0.149), // 0.500              amber       #FD9926
-    vec3(1.00, 0.76, 0.20),  // 0.625              gold        #FFC233
-    vec3(1.00, 0.90, 0.36),  // 0.750              yellow      #FFE65C
-    vec3(1.00, 0.969,0.72),  // 0.875              pale yellow #FFF7B8
-    vec3(1.00, 1.00, 0.969)  // 1.000 strong core  white-hot   #FFFFF7
+// ── Signal heatmap (weak → strong) -- mako/cividis-style cool ramp ────────
+// A perceptually-uniform cool scale (replaces the legacy incandescent fire
+// ramp): deep blue at the weak fringe reads as marginal / barely-there; the
+// teal mid-range marks usable coverage; yellow at the strong terminus marks
+// reliable-core ground.  8 stops, blended in linear light (col*col / sqrt
+// pair) like every other ramp here.
+//
+// The low end is the BLUE family (not viridis's
+// magenta-purple) so the weak fringe reads as a recessive cool tone that
+// coexists with the warm-cream terrain hillshade highlight instead of clashing
+// as a saturated categorical hue.  "dark & cool = weak" semantics preserved.
+//
+// Anchor hex references (sRGB):
+//   #16314f deep blue   →  #25426e blue    →  #3b528b blue
+//   →  #2a7e8e blue-teal →  #21918c teal   →  #3aad76 teal-green
+//   →  #5ec962 green     →  #fde725 yellow
+const int HEAT_N = 8;
+const vec3 HEAT[8] = vec3[8](
+    vec3(0.086, 0.192, 0.310),  // 0.000  deep blue    #16314f
+    vec3(0.145, 0.259, 0.431),  // 0.143  blue         #25426e
+    vec3(0.231, 0.322, 0.545),  // 0.286  blue         #3b528b
+    vec3(0.165, 0.494, 0.557),  // 0.429  blue-teal    #2a7e8e
+    vec3(0.129, 0.567, 0.551),  // 0.571  teal         #21918c
+    vec3(0.227, 0.678, 0.463),  // 0.714  teal-green   #3aad76
+    vec3(0.369, 0.788, 0.384),  // 0.857  green        #5ec962
+    vec3(0.992, 0.906, 0.145)   // 1.000  yellow       #fde725
 );
-// The heatmap ends map to the RENDER-ONLY display window u_rampLo (red fringe)
-// .. u_rampHi (white-hot core): a live paint uniform, so the operator can
+// Ends map to the RENDER-ONLY display window u_rampLo (deep blue fringe)
+// .. u_rampHi (yellow core): a live paint uniform, so the operator can
 // stretch / compress the colour ramp with NO re-bake.  Guarded against a
 // zero-width window (max(..,1e-3)) so a degenerate slider pair can't divide by 0.
 vec3 heatColor(float margin) {
@@ -68,10 +76,13 @@ vec3 heatColor(float margin) {
     return sqrt(mix(a, b, w));                       // ~linear -> sRGB
 }
 
-// ── Confidence (reliability) recolor + %-reliability contours ──────────────
-// A COOL perceptual ramp (viridis-like) for the confidence view, distinct from
-// the incandescent signal heatmap so reliability reads on its own axis: dark
-// purple = unreliable (coin-flip), yellow = near-certain.
+// ── Confidence (reliability) recolor + %-reliability contours ────────────
+// The confidence view recolors the field by RELIABILITY (p_cov) instead of
+// signal margin, using the same viridis anchor palette as the signal view
+// (HEAT[]).  The two views are still visually distinct: in signal view the
+// COLOR encodes margin strength and p_cov drives TRANSLUCENCY; here COLOR
+// encodes reliability and every covered pixel holds equal opacity regardless
+// of margin.  dark purple = unreliable (coin-flip), yellow = near-certain.
 const int REL_N = 5;
 const vec3 REL[5] = vec3[5](
     vec3(0.267, 0.005, 0.329),  // 0.00  #440154 dark purple
@@ -178,13 +189,11 @@ void main() {
         col = serverColor(fld.b) * mix(0.5, 1.15, tHot);
         alpha = presence * mix(0.12, 1.0, pCov) * u_surfaceOpacity;
     } else {
-        // SIGNAL view (default): incandescent heatmap, confidence as TRANSLUCENCY
+        // SIGNAL view (default): viridis-style heatmap, confidence as TRANSLUCENCY
         // alone -- faint where unsure, solid where not -- so the hues stay pure.
+        // No brightness bloom (the viridis ramp ends at yellow, not white, so
+        // the fire-specific brightening pass is omitted here).
         col = heatColor(marginColor);
-        // Incandescent bloom: past mid-strength the core keeps brightening toward
-        // white so dense / overlapping strong signals read as brighten-to-terminus.
-        float tHot = clamp((marginColor - u_rampLo) / max(u_rampHi - u_rampLo, 0.001), 0.0, 1.0);
-        col *= 1.0 + 0.30 * smoothstep(0.5, 1.0, tHot);
         alpha = presence * mix(0.12, 1.0, pCov) * u_surfaceOpacity;
     }
 
