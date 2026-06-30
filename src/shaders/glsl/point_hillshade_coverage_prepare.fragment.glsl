@@ -112,6 +112,30 @@ float sampleElevationTile(vec2 tilePos) {
     return b.r * u_lg2.x + b.g * u_lg2.y + b.b * u_lg2.z - u_lg2.w;
 }
 
+// ── Bilinear overview sample (de-blocks the diffraction shadow edge) ───────
+// The wide-area overview is R32F (already-decoded absolute metres), so unlike
+// the byte-packed per-tile DEM it CAN be interpolated.  It is bound NEAREST
+// (R32F linear filtering needs the optional OES_texture_float_linear ext), so
+// we interpolate MANUALLY here: `texelFetch` the 4 surrounding texels (always
+// valid for a float texture in core WebGL2) and lerp.  NEAREST sampling of the
+// coarse (~z12) overview quantises ridge heights to texel boundaries, which
+// stair-steps the knife-edge shadow boundary into visible blocks at mid-zoom;
+// interpolating the elevation field makes the terrain — and thus the occlusion
+// shadow — continuous, without a float-linear extension dependency.
+float sampleOverviewBilinear(vec2 ov) {
+    vec2 dim = vec2(textureSize(u_overviewTex, 0));
+    vec2 tc = ov * dim - 0.5;            // texel-space, texel-centre aligned
+    vec2 base = floor(tc);
+    vec2 f = tc - base;
+    ivec2 maxi = ivec2(dim) - 1;
+    ivec2 i0 = ivec2(base);
+    float h00 = texelFetch(u_overviewTex, clamp(i0,               ivec2(0), maxi), 0).r;
+    float h10 = texelFetch(u_overviewTex, clamp(i0 + ivec2(1, 0), ivec2(0), maxi), 0).r;
+    float h01 = texelFetch(u_overviewTex, clamp(i0 + ivec2(0, 1), ivec2(0), maxi), 0).r;
+    float h11 = texelFetch(u_overviewTex, clamp(i0 + ivec2(1, 1), ivec2(0), maxi), 0).r;
+    return mix(mix(h00, h10, f.x), mix(h01, h11, f.x), f.y);
+}
+
 // ── Elevation sample (overview-first, per-tile DEM fallback) ───────────────
 // Prefers the wide-area FIXED-RESOLUTION overview: map the tile-relative march
 // position to normalized mercator (the inverse of the light packing:
@@ -127,7 +151,7 @@ float sampleElevation(vec2 tilePos) {
         vec2 merc = (tilePos + u_lg0.yz) / u_lg0.x;   // (p + tileOrigin)/tilesAtZoom
         vec2 ov = (merc - u_lg4.xy) / u_lg4.zw;       // -> overview [0,1] uv
         if (ov.x >= 0.0 && ov.x <= 1.0 && ov.y >= 0.0 && ov.y <= 1.0) {
-            return texture(u_overviewTex, ov).r;
+            return sampleOverviewBilinear(ov);
         }
     }
     return sampleElevationTile(tilePos);
@@ -145,7 +169,7 @@ float nodeGroundElevation(vec2 nodeTilePos, float cpuElev) {
         vec2 merc = (nodeTilePos + u_lg0.yz) / u_lg0.x;
         vec2 ov = (merc - u_lg4.xy) / u_lg4.zw;
         if (ov.x >= 0.0 && ov.x <= 1.0 && ov.y >= 0.0 && ov.y <= 1.0) {
-            return texture(u_overviewTex, ov).r;
+            return sampleOverviewBilinear(ov);
         }
     }
     return cpuElev;
