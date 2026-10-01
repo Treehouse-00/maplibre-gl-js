@@ -3,6 +3,7 @@
 - _...Add new stuff here..._
 
 ### 🐞 Bug fixes
+- Fix `DOM.sanitize` leaving dangerous attributes behind when multiple consecutive attributes are present. Iterating the live `NamedNodeMap` from `elem.attributes` while calling `removeAttribute` skipped the attribute directly after a removed one, so a second dangerous attribute (for example an `ontoggle` on a `<details open>` element) could survive sanitisation and later execute ([#8189](https://github.com/maplibre/maplibre-gl-js/pull/8189)) (by [@0xKirisame](https://github.com/0xKirisame)) (backported from upstream v6.4.1, GHSA-jrc7-96c5-q579)
 - _...Add new stuff here..._
 - querySourceFeatures() throws 'Block overruns tile' on overzoomed MLT tiles because the reported encoding doesn't match the re-encoded MVT data ([#7707](https://github.com/maplibre/maplibre-gl-js/pull/7707)) (by [@ted-piotrowski](https://github.com/ted-piotrowski))
 - Fix geometry length check for polygons and lines in LineBucket after duplicate vertex trimming([#7638](https://github.com/maplibre/maplibre-gl-js/pull/7638)) (by [@widefire](https://github.com/widefire))
